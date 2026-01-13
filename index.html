@@ -17,7 +17,7 @@
             --danger-color: #ff4d4d;
             --text-color: #ffffff;
             --text-gray: #aaaaaa;
-            --border-color: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.15);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -41,25 +41,22 @@
         .menu-btn { background: none; border: none; color: white; font-size: 24px; padding: 5px; margin-right: 15px; }
         .app-title { font-size: 18px; font-weight: 600; background: linear-gradient(90deg, var(--primary-color), #a54aff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        /* --- 侧边栏 (修复位置偏下问题) --- */
+        /* --- 侧边栏 --- */
         .sidebar {
             position: fixed; top: 0; left: 0; height: 100%; width: 280px;
             background-color: var(--surface-color); transform: translateX(-100%); transition: 0.3s;
             z-index: 200; box-shadow: 4px 0 15px rgba(0,0,0,0.5); 
-            /* 删除 padding-top，让 header 顶上去 */
             display: flex; flex-direction: column;
         }
         .sidebar.active { transform: translateX(0); }
-        
         .sidebar-header {
             height: 60px; display: flex; align-items: center; padding-left: 20px; 
-            border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-gray);
-            flex-shrink: 0; /* 防止被挤压 */
+            border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-gray); flex-shrink: 0;
         }
-        
         .menu-category { padding: 15px 20px 5px; color: var(--text-gray); font-size: 12px; font-weight: bold; text-transform: uppercase; }
         .menu-item { display: flex; align-items: center; padding: 12px 20px; color: white; transition: 0.2s; border-left: 3px solid transparent; cursor: pointer; }
         .menu-item.active { border-left-color: var(--primary-color); color: var(--primary-color); background: rgba(255,255,255,0.05); }
+        
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: 0.3s; z-index: 150; backdrop-filter: blur(2px); }
         .overlay.active { opacity: 1; visibility: visible; }
 
@@ -117,49 +114,25 @@
         .ch-name { font-weight: bold; font-size: 14px; }
         .ch-url { font-size: 11px; color: var(--text-gray); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* --- 新增：资料模式 (Grid View) --- */
+        /* 资料模式 (Grid) */
         #gridEditor {
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 15px;
-            padding-bottom: 50px;
+            display: none; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; padding-bottom: 50px;
         }
         .grid-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-            position: relative;
+            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;
+            cursor: pointer; transition: transform 0.2s, border-color 0.2s; position: relative;
         }
         .grid-card:hover { transform: translateY(-3px); border-color: var(--primary-color); }
-        
         .card-img-box {
-            width: 100%;
-            height: 0;
-            padding-bottom: 56.25%; /* 16:9 */
-            background: #000;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 100%; height: 0; padding-bottom: 56.25%; background: #000; position: relative; display: flex; align-items: center; justify-content: center;
         }
-        .card-img {
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            object-fit: contain; /* 保持Logo比例 */
-            background-color: #222;
-        }
-        .card-placeholder {
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; color: #444; font-weight: bold;
-        }
+        .card-img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; background: #222; }
+        .card-placeholder { position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #444; font-weight: bold; }
         .card-info { padding: 10px; }
         .card-name { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-tag { font-size: 10px; color: var(--primary-color); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
-        /* --- 资料编辑弹窗 (Dynamic Modal) --- */
+        /* --- 弹窗体系 --- */
         .modal-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); z-index: 1000; display: none;
@@ -167,32 +140,18 @@
         }
         .edit-modal {
             background: #252525; border-radius: 12px; width: 90%; max-width: 400px;
-            max-height: 80vh; overflow-y: auto; border: 1px solid var(--border-color);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column;
+            max-height: 85vh; display: flex; flex-direction: column;
+            border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.6);
         }
-        .edit-header {
-            padding: 15px 20px; border-bottom: 1px solid var(--border-color);
-            font-weight: bold; font-size: 16px; color: white;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .edit-body { padding: 20px; }
+        .edit-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: white; display: flex; justify-content: space-between; }
+        .edit-body { padding: 20px; overflow-y: auto; }
+        .edit-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
+        
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
-        .form-input {
-            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
-            padding: 10px; border-radius: 6px; color: white; font-size: 14px;
-        }
+        .form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; color: white; font-size: 14px; }
         .form-input:focus { border-color: var(--primary-color); }
-        
-        .edit-footer {
-            padding: 15px 20px; border-top: 1px solid var(--border-color);
-            display: flex; justify-content: flex-end; gap: 10px;
-        }
-
-        .reset-btn {
-            background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color);
-            padding: 8px 20px; border-radius: 6px; font-size: 12px; margin-top: 15px; display: inline-block;
-        }
+        .reset-btn { background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 8px 20px; border-radius: 6px; font-size: 12px; margin-top: 15px; display: inline-block; }
 
     </style>
 </head>
@@ -217,8 +176,7 @@
                 <span>编辑频道资料</span>
                 <span onclick="closeEditModal()" style="cursor:pointer; font-size:20px;">&times;</span>
             </div>
-            <div class="edit-body" id="dynamicForm">
-                </div>
+            <div class="edit-body" id="dynamicForm"></div>
             <div class="edit-footer">
                 <button class="tool-btn" onclick="closeEditModal()">取消</button>
                 <button class="tool-btn primary" onclick="saveChannelData()">保存修改</button>
@@ -247,15 +205,12 @@
                 <input type="text" class="url-input" id="urlInput" placeholder="在此粘贴链接..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
                 <button class="play-btn" id="playBtn">播放</button>
             </div>
-            <div class="player-wrapper">
-                <video id="video" controls></video>
-            </div>
+            <div class="player-wrapper"><video id="video" controls></video></div>
             <div id="statusMsg">准备就绪</div>
         </div>
 
         <div id="section-editor" class="section-view">
             <div class="section-title">直播源文件编辑</div>
-            
             <div id="step-upload">
                 <div class="upload-area" onclick="document.getElementById('fileInput').click()">
                     <input type="file" id="fileInput" hidden accept=".m3u,.m3u8,.txt">
@@ -290,14 +245,15 @@
     </main>
 
     <script>
-        // --- 1. 基础 UI 逻辑 ---
+        // --- 逻辑初始化 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         const confirmModal = document.getElementById('confirmModal');
-        let fileContentBuffer = ''; 
+        let fileContentBuffer = '';
         let currentFileName = 'playlist.m3u';
-        let channelData = []; // 存储所有频道对象的数组
-        let currentEditIndex = -1; // 当前正在编辑的频道索引
+        let channelData = []; 
+        let headerLines = []; // 存储文件头部 (EXTM3U等)
+        let currentEditIndex = -1;
 
         function toggleMenu() { sidebar.classList.toggle('active'); overlay.classList.toggle('active'); }
         function switchTab(id, btn) {
@@ -308,38 +264,22 @@
             toggleMenu();
         }
 
-        // --- 2. 播放器修复逻辑 ---
+        // --- 播放器 ---
         document.getElementById('playBtn').addEventListener('click', () => {
             const url = document.getElementById('urlInput').value.trim();
             const v = document.getElementById('video');
             const msg = document.getElementById('statusMsg');
-            
-            if (!url) return;
-
+            if(!url) return;
             if(Hls.isSupported()) {
-                const hls = new Hls(); 
-                hls.loadSource(url); 
-                hls.attachMedia(v);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-                    v.play(); 
-                    msg.textContent = "✅ 正在播放"; 
-                    msg.style.color = "#4caf50";
-                });
-                hls.on(Hls.Events.ERROR, (event, data) => { 
-                    // 修复：只在致命错误时显示失败，普通的buffer stall不报错
-                    if (data.fatal) {
-                        msg.textContent = "❌ 加载失败 (Fatal Error)";
-                        msg.style.color = "#ff4d4d";
-                    }
-                });
+                const hls = new Hls(); hls.loadSource(url); hls.attachMedia(v);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => { v.play(); msg.textContent = "✅ 正在播放"; msg.style.color="#4caf50"; });
+                hls.on(Hls.Events.ERROR, (e,d) => { if(d.fatal) { msg.textContent = "❌ 加载失败"; msg.style.color="#ff4d4d"; } });
             } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
-                v.src = url; 
-                v.play();
-                msg.textContent = "✅ 正在播放 (原生)";
+                v.src=url; v.play(); msg.textContent = "✅ 原生播放";
             }
         });
 
-        // --- 3. 文件处理 ---
+        // --- 文件读取 ---
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if(!file) return;
@@ -358,263 +298,25 @@
                 document.getElementById('codeEditor').value = fileContentBuffer;
                 document.getElementById('step-upload').style.display = 'none';
                 document.getElementById('step-edit').style.display = 'block';
-                // 解析数据
-                parseTextToData();
+                parseTextToData(); // 核心解析
                 setMode('text');
             } else {
                 document.getElementById('fileInput').value = '';
             }
         }
 
-        // --- 4. 核心解析与模式切换 ---
+        // --- 核心逻辑: 全量解析与重建 ---
         const visualEditor = document.getElementById('visualEditor');
         const codeEditor = document.getElementById('codeEditor');
         const gridEditor = document.getElementById('gridEditor');
 
         function setMode(mode) {
-            // 按钮状态更新
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             if(mode==='text') document.getElementById('btnModeText').classList.add('active');
             if(mode==='visual') document.getElementById('btnModeVisual').classList.add('active');
             if(mode==='grid') document.getElementById('btnModeGrid').classList.add('active');
             
-            // 隐藏所有
             codeEditor.style.display = 'none';
             visualEditor.style.display = 'none';
             gridEditor.style.display = 'none';
-            document.getElementById('btnAddTemplate').style.display = 'none';
-
-            // 切换逻辑
-            if(mode === 'text') {
-                codeEditor.style.display = 'block';
-                document.getElementById('btnAddTemplate').style.display = 'flex';
-                // 从数据同步回文本
-                syncDataToText();
-            } else if (mode === 'visual') {
-                visualEditor.style.display = 'block';
-                // 每次切回列表都重新解析文本（确保文本模式修改生效）
-                if (codeEditor.style.display !== 'none') parseTextToData(); 
-                else syncDataToText(); // 如果从Grid切过来，先把Grid数据写回Text再解析显示List？不，直接用Data渲染
-                
-                renderVisualList();
-            } else if (mode === 'grid') {
-                gridEditor.style.display = 'grid'; // Grid 布局
-                parseTextToData(); // 确保数据最新
-                renderGrid();
-            }
-        }
-
-        // --- 5. 数据解析 (Text -> Object Array) ---
-        function parseTextToData() {
-            const lines = codeEditor.value.split('\n');
-            channelData = [];
-            let current = null;
-
-            lines.forEach(line => {
-                line = line.trim();
-                if(line.startsWith('#EXTINF:')) {
-                    if(current) channelData.push(current);
-                    
-                    // 初始化新对象
-                    current = { 
-                        rawHeader: line, 
-                        url: '', 
-                        params: {} 
-                    };
-
-                    // 解析 EXTINF 参数
-                    // 1. 提取名字 (最后一个逗号后面)
-                    const nameMatch = line.match(/,(.+)$/);
-                    current.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
-
-                    // 2. 提取 key="value" 格式参数
-                    const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
-                    let match;
-                    while ((match = regex.exec(line)) !== null) {
-                        current.params[match[1]] = match[2];
-                    }
-                } else if (!line.startsWith('#') && line.length > 0) {
-                    if(current) { 
-                        current.url = line; 
-                        channelData.push(current); 
-                        current = null; 
-                    }
-                }
-            });
-        }
-
-        // --- 6. 数据同步 (Object Array -> Text) ---
-        function syncDataToText() {
-            let res = "#EXTM3U\n";
-            channelData.forEach(ch => {
-                // 重建 Header
-                // 必须保留 duration (-1)
-                let newLine = '#EXTINF:-1';
-                
-                // 遍历 params 拼装
-                for (let key in ch.params) {
-                    if (key !== 'name') { // 名字在最后，不参与键值对拼装
-                        newLine += ` ${key}="${ch.params[key]}"`;
-                    }
-                }
-                
-                // 加名字
-                newLine += `,${ch.params['name']}`;
-                
-                res += newLine + "\n" + ch.url + "\n";
-            });
-            codeEditor.value = res;
-        }
-
-        // --- 7. 渲染列表模式 ---
-        function renderVisualList() {
-            visualEditor.innerHTML = '';
-            channelData.forEach((ch, index) => {
-                const li = document.createElement('li');
-                li.className = 'channel-item';
-                li.innerHTML = `
-                    <div class="channel-info">
-                        <div class="ch-name">${ch.params.name}</div>
-                        <div class="ch-url">${ch.url}</div>
-                    </div>
-                    <div class="drag-handle">☰</div>
-                `;
-                visualEditor.appendChild(li);
-            });
-            // 初始化拖拽
-            if(!visualEditor.sortable) {
-                visualEditor.sortable = Sortable.create(visualEditor, { 
-                    handle: '.drag-handle', 
-                    animation: 150,
-                    onEnd: (evt) => {
-                        // 拖拽后同步数据顺序
-                        const item = channelData.splice(evt.oldIndex, 1)[0];
-                        channelData.splice(evt.newIndex, 0, item);
-                    }
-                });
-            }
-        }
-
-        // --- 8. 渲染资料模式 (Grid + Dynamic Modal) ---
-        function renderGrid() {
-            gridEditor.innerHTML = '';
-            channelData.forEach((ch, index) => {
-                const card = document.createElement('div');
-                card.className = 'grid-card';
-                card.onclick = () => openEditModal(index); // 点击打开弹窗
-
-                const logoUrl = ch.params['tvg-logo'];
-                const groupTitle = ch.params['group-title'] || '';
-                
-                // 卡片内容
-                let imgHtml = logoUrl 
-                    ? `<img src="${logoUrl}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                       <div class="card-placeholder" style="display:none">${ch.params.name[0]}</div>`
-                    : `<div class="card-placeholder">${ch.params.name[0]}</div>`;
-
-                card.innerHTML = `
-                    <div class="card-img-box">${imgHtml}</div>
-                    <div class="card-info">
-                        <div class="card-tag">${groupTitle}</div>
-                        <div class="card-name">${ch.params.name}</div>
-                    </div>
-                `;
-                gridEditor.appendChild(card);
-            });
-        }
-
-        // --- 9. 动态弹窗逻辑 ---
-        const editModal = document.getElementById('editModal');
-        const dynamicForm = document.getElementById('dynamicForm');
-
-        function openEditModal(index) {
-            currentEditIndex = index;
-            const ch = channelData[index];
-            dynamicForm.innerHTML = ''; // 清空
-
-            // 必显字段
-            const standardKeys = ['name', 'group-title', 'tvg-logo', 'url'];
-            
-            // 1. 先显示标准字段 (如果不存在也创建空框)
-            // Name
-            createInput('频道名称 (name)', 'name', ch.params['name']);
-            // Group
-            createInput('分组名称 (group-title)', 'group-title', ch.params['group-title'] || '');
-            // Logo
-            createInput('台标链接 (tvg-logo)', 'tvg-logo', ch.params['tvg-logo'] || '');
-            
-            // 2. 显示其它检测到的字段 (Flexible)
-            for (let key in ch.params) {
-                if (!standardKeys.includes(key) && key !== 'name') {
-                    createInput(`其他属性 (${key})`, key, ch.params[key]);
-                }
-            }
-
-            // 3. URL (特殊处理，不在params里)
-            createInput('直播链接 (URL)', 'url', ch.url);
-
-            editModal.parentNode.style.display = 'flex';
-        }
-
-        function createInput(label, key, value) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `
-                <label class="form-label">${label}</label>
-                <input type="text" class="form-input" data-key="${key}" value="${value}">
-            `;
-            dynamicForm.appendChild(div);
-        }
-
-        function closeEditModal() {
-            editModal.parentNode.style.display = 'none';
-        }
-
-        function saveChannelData() {
-            const inputs = dynamicForm.querySelectorAll('input');
-            const ch = channelData[currentEditIndex];
-            
-            inputs.forEach(input => {
-                const key = input.dataset.key;
-                const val = input.value.trim();
-                
-                if (key === 'url') {
-                    ch.url = val;
-                } else {
-                    if (val) {
-                        ch.params[key] = val;
-                    } else {
-                        delete ch.params[key]; // 如果清空了值，就删除该属性
-                    }
-                }
-            });
-
-            closeEditModal();
-            renderGrid(); // 刷新网格视图
-        }
-
-        // --- 10. 通用工具 ---
-        function insertTemplate() {
-            const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="新分组", 新频道\nhttp://url`;
-            const start = codeEditor.selectionStart;
-            codeEditor.value = codeEditor.value.slice(0, start) + tpl + codeEditor.value.slice(codeEditor.selectionEnd);
-        }
-
-        function saveAndDownload() {
-            syncDataToText(); // 确保所有模式的修改都写入文本
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(new Blob([codeEditor.value], {type: "text/plain"}));
-            a.download = "Edited_" + currentFileName;
-            a.click();
-        }
-
-        function resetEditor() {
-            if(confirm('确定要放弃当前修改吗？')) {
-                document.getElementById('step-edit').style.display = 'none';
-                document.getElementById('step-upload').style.display = 'block';
-                document.getElementById('fileInput').value = '';
-            }
-        }
-    </script>
-</body>
-</html>
+            document.getElementById
