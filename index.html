@@ -67,8 +67,8 @@
         /* --- 5. 视图组件 --- */
         #codeEditor { width: 100%; height: 500px; background: #121212; color: #d4d4d4; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre; resize: vertical; }
         
-        .channel-item { background: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 8px; padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px; }
-        .channel-info { flex: 1; overflow: hidden; }
+        .channel-item { background: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 8px; padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px; cursor: move; }
+        .channel-info { flex: 1; overflow: hidden; pointer-events: none; } /* 防止拖拽时选中文字 */
         .ch-name { font-weight: bold; font-size: 14px; }
         .ch-url { font-size: 11px; color: var(--text-gray); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .drag-handle { cursor: grab; color: var(--text-gray); font-size: 18px; padding: 5px; }
@@ -233,15 +233,13 @@
     </main>
 
     <script>
-        // --- 核心变量 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         const confirmModal = document.getElementById('confirmModal');
         let fileContentBuffer = '';
         let currentFileName = 'playlist.m3u';
-        let channelData = []; // 存储所有块（Type: 'channel' | 'raw'）
-        let currentEditIndex = -1; // 仅指向 'channel' 类型的索引
-        
+        let channelData = []; 
+        let currentEditIndex = -1;
         let isBatchMode = false;
         let selectedIndices = new Set();
         let currentBatchType = '';
@@ -294,31 +292,17 @@
             }
         }
 
-        // --- 核心解析器 v6.0 (无损块级解析) ---
-        // 逻辑：将文件拆分为 'channel' (有效频道) 和 'raw' (注释/模板/空行)
-        // 目的：Text模式100%还原，Grid模式只显示有效频道
         function parseTextToData() {
             const rawText = document.getElementById('codeEditor').value;
             const lines = rawText.split(/\r?\n/);
             channelData = [];
-            
             let currentBlock = null;
 
             lines.forEach(line => {
                 const trimLine = line.trim();
-                
-                // 1. 如果遇到 #EXTINF，开启一个新块（可能是频道，也可能是模板）
                 if (trimLine.startsWith('#EXTINF:')) {
                     if (currentBlock) channelData.push(currentBlock);
-                    
-                    currentBlock = { 
-                        type: 'unknown', // 暂时未知，看下一行有没有URL
-                        lines: [line],   // 保存原始文本
-                        url: '',
-                        params: {} 
-                    };
-                    
-                    // 解析参数供UI显示
+                    currentBlock = { type: 'unknown', lines: [line], url: '', params: {} };
                     const nameMatch = line.match(/,(.+)$/);
                     currentBlock.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
                     const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
@@ -327,43 +311,25 @@
                         currentBlock.params[match[1]] = match[2];
                     }
                 } 
-                // 2. 如果遇到 URL，且当前块是 EXTINF，则确认为频道
                 else if (currentBlock && currentBlock.type === 'unknown' && isUrl(trimLine)) {
                     currentBlock.type = 'channel';
                     currentBlock.url = trimLine;
                     currentBlock.lines.push(line);
-                    
-                    // URL行是频道的结束，结算它
                     channelData.push(currentBlock);
                     currentBlock = null; 
                 }
-                // 3. 其他情况 (注释、空行、无EXTINF的URL、模板的后续行)
                 else {
                     if (currentBlock && currentBlock.type === 'unknown') {
-                        // 还在EXTINF块里，但不是URL (可能是 #EXTVLCOPT 或其他属性)
                         currentBlock.lines.push(line);
                     } else {
-                        // 独立的原生文本块 (Header, Separator, Blank lines)
-                        // 或者上一个频道已经结算了
-                        if (!currentBlock) {
-                            currentBlock = { type: 'raw', lines: [line] };
-                        } else if (currentBlock.type === 'raw') {
-                            currentBlock.lines.push(line);
-                        } else {
-                            // 理论上不会进这里，因为channel结算了currentBlock会置null
-                            channelData.push(currentBlock);
-                            currentBlock = { type: 'raw', lines: [line] };
-                        }
+                        if (!currentBlock) currentBlock = { type: 'raw', lines: [line] };
+                        else if (currentBlock.type === 'raw') currentBlock.lines.push(line);
+                        else { channelData.push(currentBlock); currentBlock = { type: 'raw', lines: [line] }; }
                     }
                 }
             });
             if (currentBlock) channelData.push(currentBlock);
-            
-            // 后处理：把标记为 'unknown' 的 (即只有EXTINF没有URL的) 转为 'raw'
-            // 这样它们在Grid里隐藏，但在Text里保留
-            channelData.forEach(item => {
-                if (item.type === 'unknown') item.type = 'raw';
-            });
+            channelData.forEach(item => { if (item.type === 'unknown') item.type = 'raw'; });
         }
 
         function isUrl(str) {
@@ -371,26 +337,18 @@
             return s.startsWith('http') || s.startsWith('rtmp') || s.startsWith('rtsp') || s.startsWith('udp') || s.startsWith('mms');
         }
 
-        // 还原文本：直接拼接 lines，保证 100% 原样
         function syncDataToText() {
             const text = channelData.map(block => block.lines.join('\n')).join('\n');
             document.getElementById('codeEditor').value = text;
         }
 
-        // 修改保存逻辑：如果用户在UI修改了属性，需要重新生成那个 Channel 的 lines
         function updateChannelLines(block) {
             if (block.type !== 'channel') return;
-            
-            // 重建 EXTINF 行
             let newExtinf = '#EXTINF:-1';
             for (let key in block.params) {
                 if (key !== 'name') newExtinf += ` ${key}="${block.params[key]}"`;
             }
             newExtinf += `,${block.params['name']}`;
-            
-            // 保留中间的非URL行 (如 #EXTVLCOPT) ?? 
-            // 简化处理：UI编辑会覆盖标准格式，保留 URL。
-            // 这是一个权衡：编辑后会标准化，不编辑则保留原样。
             block.lines = [newExtinf, block.url];
         }
 
@@ -421,36 +379,37 @@
             }
         }
 
-        function getValidChannels() {
-            return channelData.filter(item => item.type === 'channel');
-        }
-
+        // --- 核心修复：Sortable.onEnd 逻辑更新数据 ---
         function renderVisualList() {
             const list = document.getElementById('visualEditor');
             list.innerHTML = '';
-            // 仅渲染有效频道
             channelData.forEach((item, index) => {
                 if (item.type !== 'channel') return;
                 const li = document.createElement('li');
                 li.className = 'channel-item';
                 li.innerHTML = `<div class="channel-info"><div class="ch-name">${item.params.name}</div><div class="ch-url">${item.url}</div></div><div class="drag-handle">☰</div>`;
-                // 存储真实索引以便排序
-                li.dataset.idx = index;
                 list.appendChild(li);
             });
             
             if(!list.sortable) list.sortable = Sortable.create(list, { 
                 handle:'.drag-handle', 
                 animation:150, 
-                onEnd: (e) => {
-                    // 排序逻辑比较复杂，因为中间夹杂着 'raw' 块
-                    // 简单策略：仅交换 valid channels 的位置，raw块位置不变
-                    // 更好的策略：移动 Channel 时，带着它上面的 Raw 块？ 
-                    // 这里为了稳定性，暂时只支持视觉排序，Text模式下的排序需要更复杂的算法，
-                    // 鉴于用户要求“原样保留”，建议在Text模式进行大范围移动，Grid仅做展示/编辑。
-                    // *或者*：我们在 saveData 时重新按 DOM 顺序排列 Valid Channels。
-                    // 但这会打乱 Raw 块。此版本暂不支持 Grid 拖拽回写到 Text (防止乱序)，
-                    // Grid 主要用于查看和点击编辑。
+                onEnd: (evt) => {
+                    // 1. 找到所有有效频道的 index
+                    const validIndices = [];
+                    channelData.forEach((item, i) => { if (item.type === 'channel') validIndices.push(i); });
+                    
+                    // 2. 提取有效 block
+                    const validBlocks = validIndices.map(i => channelData[i]);
+                    
+                    // 3. 在局部进行移动
+                    const [moved] = validBlocks.splice(evt.oldIndex, 1);
+                    validBlocks.splice(evt.newIndex, 0, moved);
+                    
+                    // 4. 将排序后的 block 填回原数组的对应位置 (保留原有的非频道块不动)
+                    validBlocks.forEach((block, i) => {
+                        channelData[validIndices[i]] = block;
+                    });
                 }
             });
         }
@@ -458,10 +417,8 @@
         function renderGrid() {
             const grid = document.getElementById('gridEditor');
             grid.innerHTML = '';
-            
             channelData.forEach((item, index) => {
                 if (item.type !== 'channel') return;
-                
                 const card = document.createElement('div');
                 card.className = 'grid-card';
                 if (isBatchMode) {
@@ -469,11 +426,9 @@
                     if (selectedIndices.has(index)) card.classList.add('selected');
                 }
                 card.onclick = () => handleCardClick(index);
-                
                 const logo = item.params['tvg-logo'];
                 const group = item.params['group-title'] || '';
                 const imgHtml = logo ? `<img src="${logo}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
-                
                 card.innerHTML = `
                     <div class="check-circle"></div>
                     <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${item.params.name[0]}</div></div>
@@ -494,19 +449,12 @@
             }
         }
 
-        // --- 全选 / 全取消 ---
         function toggleSelectAll() {
             const validIndices = [];
             channelData.forEach((item, idx) => { if(item.type==='channel') validIndices.push(idx); });
-
-            // 检查是否所有有效频道都被选中了
             const allSelected = validIndices.every(idx => selectedIndices.has(idx));
-
-            if (allSelected) {
-                selectedIndices.clear(); // 全取消
-            } else {
-                validIndices.forEach(idx => selectedIndices.add(idx)); // 全选
-            }
+            if (allSelected) selectedIndices.clear();
+            else validIndices.forEach(idx => selectedIndices.add(idx));
             renderGrid();
             updateBatchUI();
         }
@@ -514,13 +462,9 @@
         function updateBatchUI() {
             document.getElementById('batchCount').textContent = `已选 ${selectedIndices.size} 个`;
             const btnAll = document.getElementById('btnSelectAll');
-            
             const validCount = channelData.filter(i => i.type==='channel').length;
-            if (selectedIndices.size === validCount && validCount > 0) {
-                btnAll.textContent = "🔁 全取消";
-            } else {
-                btnAll.textContent = "🔁 全选";
-            }
+            if (selectedIndices.size === validCount && validCount > 0) btnAll.textContent = "🔁 全取消";
+            else btnAll.textContent = "🔁 全选";
         }
 
         function toggleBatchMode(forceState) {
@@ -544,8 +488,7 @@
         function openBatchEdit(type) {
             if (selectedIndices.size === 0) return alert('请先选择频道！');
             currentBatchType = type;
-            const label = type === 'group' ? '请输入新的分组名称' : '请输入新的Logo链接';
-            document.getElementById('batchLabel').textContent = label;
+            document.getElementById('batchLabel').textContent = type === 'group' ? '请输入新的分组名称' : '请输入新的Logo链接';
             document.getElementById('batchInput').value = '';
             document.getElementById('batchInputModal').style.display = 'flex';
         }
@@ -557,7 +500,7 @@
                 const item = channelData[idx];
                 if(val) item.params[key] = val;
                 else delete item.params[key];
-                updateChannelLines(item); // 更新文本行
+                updateChannelLines(item);
             });
             document.getElementById('batchInputModal').style.display = 'none';
             toggleBatchMode(false);
@@ -566,13 +509,11 @@
         function batchDelete() {
             if (selectedIndices.size === 0) return alert('未选择！');
             if (!confirm(`确定删除选中的 ${selectedIndices.size} 个频道吗？`)) return;
-            // 从后往前删，防止索引偏移
             const sortedIndices = Array.from(selectedIndices).sort((a,b) => b-a);
             sortedIndices.forEach(idx => channelData.splice(idx, 1));
             toggleBatchMode(false);
         }
 
-        // --- 弹窗 ---
         const editModal = document.getElementById('editModal');
         const dynamicForm = document.getElementById('dynamicForm');
 
@@ -580,16 +521,13 @@
             currentEditIndex = index;
             const item = channelData[index];
             dynamicForm.innerHTML = ''; 
-
             createInput('频道名称 (name)', 'name', item.params['name']);
             createInput('直播链接 (URL)', 'url', item.url);
-            
             for (let key in item.params) {
                 if (key !== 'name') createInput(`属性: ${key}`, key, item.params[key]);
             }
             if (!item.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
             if (!item.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
-
             editModal.style.display = 'flex';
         }
 
@@ -617,7 +555,7 @@
                     else delete item.params[key];
                 }
             });
-            updateChannelLines(item); // 关键：更新该频道的原始文本块
+            updateChannelLines(item);
             closeEditModal();
             renderGrid();
         }
