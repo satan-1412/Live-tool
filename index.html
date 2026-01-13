@@ -319,4 +319,230 @@
             codeEditor.style.display = 'none';
             visualEditor.style.display = 'none';
             gridEditor.style.display = 'none';
-            document.getElementById
+            document.getElementById('btnAddTemplate').style.display = 'none';
+
+            if(mode === 'text') {
+                codeEditor.style.display = 'block';
+                document.getElementById('btnAddTemplate').style.display = 'flex';
+                syncDataToText();
+            } else if (mode === 'visual') {
+                visualEditor.style.display = 'block';
+                parseTextToData(); 
+                renderVisualList();
+            } else if (mode === 'grid') {
+                gridEditor.style.display = 'grid';
+                parseTextToData();
+                renderGrid();
+            }
+        }
+
+        // 1. 解析 (Text -> Data Structure)
+        // 改进：保存所有非标准行，确保不缩略内容
+        function parseTextToData() {
+            const rawText = codeEditor.value;
+            const lines = rawText.split(/\r?\n/);
+            channelData = [];
+            headerLines = []; // 重置头部
+
+            let currentChannel = null;
+            let isHeader = true; // 标记是否还在处理文件头
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                // 跳过纯空行 (为了之后标准化输出)
+                if (line === '') continue;
+
+                // 如果遇到 #EXTINF，说明文件头结束，开始频道块
+                if (line.startsWith('#EXTINF:')) {
+                    isHeader = false;
+                    // 如果之前有一个频道没存，先存了 (理论上不会，因为遇到URL才结束)
+                    if (currentChannel) {
+                        channelData.push(currentChannel);
+                    }
+                    // 新建频道对象
+                    currentChannel = {
+                        extinf: line, // 保存原始 EXTINF 行
+                        extras: [],   // 保存中间的注释或其他标签
+                        url: '',
+                        params: {}
+                    };
+                    parseParams(currentChannel, line);
+                } 
+                else if (isHeader) {
+                    // 还没遇到第一个 EXTINF，都算文件头 (如 #EXTM3U)
+                    headerLines.push(line);
+                } 
+                else if (currentChannel) {
+                    // 已经在频道块里
+                    if (!line.startsWith('#')) {
+                        // 这是一行URL，频道结束
+                        currentChannel.url = line;
+                        channelData.push(currentChannel);
+                        currentChannel = null; 
+                    } else {
+                        // 这是 #EXTVLCOPT 或其他注释，存入 extras
+                        currentChannel.extras.push(line);
+                    }
+                }
+            }
+        }
+
+        // 解析 params (tvg-logo 等)
+        function parseParams(ch, line) {
+            // 提取名字
+            const nameMatch = line.match(/,(.+)$/);
+            ch.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
+            
+            // 提取 key="value"
+            const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
+            let match;
+            while ((match = regex.exec(line)) !== null) {
+                ch.params[match[1]] = match[2];
+            }
+        }
+
+        // 2. 重建 (Data -> Text)
+        // 改进：标准化空行，确保移动后美观
+        function syncDataToText() {
+            let res = headerLines.join('\n') + "\n\n"; // 头部后加空行
+            
+            channelData.forEach(ch => {
+                // 重建 EXTINF 行 (根据 params 更新)
+                let newExtinf = '#EXTINF:-1';
+                for (let key in ch.params) {
+                    if (key !== 'name') {
+                        newExtinf += ` ${key}="${ch.params[key]}"`;
+                    }
+                }
+                newExtinf += `,${ch.params['name']}`;
+                
+                // 拼接：EXTINF + 额外行 + URL
+                res += newExtinf + "\n";
+                if (ch.extras.length > 0) {
+                    res += ch.extras.join('\n') + "\n";
+                }
+                res += ch.url + "\n\n"; // 强制每个频道后加空行
+            });
+            
+            codeEditor.value = res;
+        }
+
+        // --- 渲染与交互 ---
+        function renderVisualList() {
+            visualEditor.innerHTML = '';
+            channelData.forEach(ch => {
+                const li = document.createElement('li');
+                li.className = 'channel-item';
+                li.innerHTML = `<div class="channel-info"><div class="ch-name">${ch.params.name}</div><div class="ch-url">${ch.url}</div></div><div class="drag-handle">☰</div>`;
+                visualEditor.appendChild(li);
+            });
+            if(!visualEditor.sortable) {
+                visualEditor.sortable = Sortable.create(visualEditor, { 
+                    handle: '.drag-handle', animation: 150,
+                    onEnd: (evt) => {
+                        const item = channelData.splice(evt.oldIndex, 1)[0];
+                        channelData.splice(evt.newIndex, 0, item);
+                    }
+                });
+            }
+        }
+
+        function renderGrid() {
+            gridEditor.innerHTML = '';
+            channelData.forEach((ch, index) => {
+                const card = document.createElement('div');
+                card.className = 'grid-card';
+                card.onclick = () => openEditModal(index);
+                
+                const logo = ch.params['tvg-logo'];
+                const group = ch.params['group-title'] || '';
+                const imgHtml = logo ? `<img src="${logo}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+                
+                card.innerHTML = `
+                    <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${ch.params.name[0]}</div></div>
+                    <div class="card-info"><div class="card-tag">${group}</div><div class="card-name">${ch.params.name}</div></div>
+                `;
+                gridEditor.appendChild(card);
+            });
+        }
+
+        // --- 弹窗编辑逻辑 ---
+        const editModal = document.getElementById('editModal');
+        const dynamicForm = document.getElementById('dynamicForm');
+
+        function openEditModal(index) {
+            currentEditIndex = index;
+            const ch = channelData[index];
+            dynamicForm.innerHTML = ''; 
+
+            // 1. 必显字段
+            createInput('频道名称 (name)', 'name', ch.params['name']);
+            createInput('直播链接 (URL)', 'url', ch.url);
+            
+            // 2. 已有属性 (tvg-logo, group-title 等)
+            for (let key in ch.params) {
+                if (key !== 'name') {
+                    createInput(`属性: ${key}`, key, ch.params[key]);
+                }
+            }
+
+            // 3. 常用缺失属性补全 (如果没识别到，添加空框方便用户填)
+            if (!ch.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
+            if (!ch.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
+
+            editModal.parentNode.style.display = 'flex';
+        }
+
+        function createInput(label, key, value) {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `<label class="form-label">${label}</label><input type="text" class="form-input" data-key="${key}" value="${value}">`;
+            dynamicForm.appendChild(div);
+        }
+
+        function closeEditModal() { editModal.parentNode.style.display = 'none'; }
+
+        function saveChannelData() {
+            const inputs = dynamicForm.querySelectorAll('input');
+            const ch = channelData[currentEditIndex];
+            
+            inputs.forEach(input => {
+                const key = input.dataset.key;
+                const val = input.value.trim();
+                if (key === 'url') {
+                    ch.url = val;
+                } else {
+                    if (val) ch.params[key] = val;
+                    else delete ch.params[key];
+                }
+            });
+            closeEditModal();
+            renderGrid();
+        }
+
+        // --- 工具 ---
+        function insertTemplate() {
+            const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="新分组", 新频道\nhttp://url\n`;
+            const start = codeEditor.selectionStart;
+            codeEditor.value = codeEditor.value.slice(0, start) + tpl + codeEditor.value.slice(codeEditor.selectionEnd);
+        }
+
+        function saveAndDownload() {
+            syncDataToText();
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([codeEditor.value], {type: "text/plain"}));
+            a.download = "Edited_" + currentFileName;
+            a.click();
+        }
+
+        function resetEditor() {
+            if(confirm('确定要放弃当前修改吗？')) {
+                document.getElementById('step-edit').style.display = 'none';
+                document.getElementById('step-upload').style.display = 'block';
+                document.getElementById('fileInput').value = '';
+            }
+        }
+    </script>
+</body>
+</html>
