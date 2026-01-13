@@ -304,3 +304,270 @@
             channelData = [];
             headerLines = [];
             let current = null;
+            let isHeader = true;
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line === '') return;
+
+                if (line.startsWith('#EXTINF:')) {
+                    isHeader = false;
+                    if (current) channelData.push(current); // 结算上一个
+                    
+                    current = { rawHeader: line, extras: [], url: '', params: {} };
+                    
+                    // 解析参数
+                    const nameMatch = line.match(/,(.+)$/);
+                    current.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
+                    const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
+                    let match;
+                    while ((match = regex.exec(line)) !== null) {
+                        current.params[match[1]] = match[2];
+                    }
+                } else if (isHeader) {
+                    headerLines.push(line);
+                } else if (current) {
+                    if (!line.startsWith('#')) {
+                        current.url = line;
+                        channelData.push(current); // 遇到URL结算
+                        current = null;
+                    } else {
+                        current.extras.push(line);
+                    }
+                }
+            });
+            // 循环结束如果有残留（比如最后一个只有EXTINF没有URL的模板），也存进去
+            if (current) channelData.push(current);
+        }
+
+        function syncDataToText() {
+            let res = headerLines.join('\n') + "\n\n";
+            channelData.forEach(ch => {
+                let newExtinf = '#EXTINF:-1';
+                for (let key in ch.params) {
+                    if (key !== 'name') newExtinf += ` ${key}="${ch.params[key]}"`;
+                }
+                newExtinf += `,${ch.params['name']}`;
+                res += newExtinf + "\n";
+                if (ch.extras.length) res += ch.extras.join('\n') + "\n";
+                if (ch.url) res += ch.url + "\n"; // 确保URL存在才换行
+                res += "\n";
+            });
+            document.getElementById('codeEditor').value = res;
+        }
+
+        // --- 模式切换 ---
+        function setMode(mode) {
+            // 退出批量模式
+            if(isBatchMode) toggleBatchMode(false);
+
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            if(mode==='text') document.getElementById('btnModeText').classList.add('active');
+            if(mode==='visual') document.getElementById('btnModeVisual').classList.add('active');
+            if(mode==='grid') document.getElementById('btnModeGrid').classList.add('active');
+            
+            document.getElementById('codeEditor').style.display = 'none';
+            document.getElementById('visualEditor').style.display = 'none';
+            document.getElementById('gridEditor').style.display = 'none';
+            document.getElementById('btnAddTemplate').style.display = 'none';
+            document.getElementById('btnBatch').style.display = 'none';
+
+            if(mode === 'text') {
+                document.getElementById('codeEditor').style.display = 'block';
+                document.getElementById('btnAddTemplate').style.display = 'flex';
+                syncDataToText();
+            } else if (mode === 'visual') {
+                document.getElementById('visualEditor').style.display = 'block';
+                parseTextToData(); renderVisualList();
+            } else if (mode === 'grid') {
+                document.getElementById('gridEditor').style.display = 'grid';
+                document.getElementById('btnBatch').style.display = 'flex';
+                parseTextToData(); renderGrid();
+            }
+        }
+
+        // --- 渲染逻辑 ---
+        function renderVisualList() {
+            const list = document.getElementById('visualEditor');
+            list.innerHTML = '';
+            channelData.forEach(ch => {
+                const li = document.createElement('li');
+                li.className = 'channel-item';
+                li.innerHTML = `<div class="channel-info"><div class="ch-name">${ch.params.name}</div><div class="ch-url">${ch.url||'无链接'}</div></div><div class="drag-handle">☰</div>`;
+                list.appendChild(li);
+            });
+            if(!list.sortable) list.sortable = Sortable.create(list, { handle:'.drag-handle', animation:150, onEnd: (e) => {
+                const item = channelData.splice(e.oldIndex, 1)[0];
+                channelData.splice(e.newIndex, 0, item);
+            }});
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('gridEditor');
+            grid.innerHTML = '';
+            channelData.forEach((ch, index) => {
+                const card = document.createElement('div');
+                card.className = 'grid-card';
+                if (isBatchMode) {
+                    card.classList.add('selecting');
+                    if (selectedIndices.has(index)) card.classList.add('selected');
+                }
+                
+                card.onclick = () => handleCardClick(index);
+
+                const logo = ch.params['tvg-logo'];
+                const group = ch.params['group-title'] || '';
+                const imgHtml = logo ? `<img src="${logo}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+
+                card.innerHTML = `
+                    <div class="check-circle"></div>
+                    <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${ch.params.name[0]}</div></div>
+                    <div class="card-info"><div class="card-tag">${group}</div><div class="card-name">${ch.params.name}</div></div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- 交互逻辑 (点击与批量) ---
+        function handleCardClick(index) {
+            if (isBatchMode) {
+                // 批量选择逻辑
+                if (selectedIndices.has(index)) selectedIndices.delete(index);
+                else selectedIndices.add(index);
+                renderGrid(); // 重新渲染以更新选中样式
+                document.getElementById('batchCount').textContent = `已选 ${selectedIndices.size} 个频道`;
+            } else {
+                // 单个编辑弹窗
+                openEditModal(index);
+            }
+        }
+
+        function toggleBatchMode(forceState) {
+            isBatchMode = forceState !== undefined ? forceState : !isBatchMode;
+            selectedIndices.clear();
+            const btn = document.getElementById('btnBatch');
+            const bar = document.getElementById('batchBar');
+            
+            if (isBatchMode) {
+                btn.classList.add('active');
+                btn.textContent = '❌ 退出选择';
+                bar.style.display = 'flex';
+                document.getElementById('batchCount').textContent = '已选 0 个频道';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '✅ 批量选择';
+                bar.style.display = 'none';
+            }
+            renderGrid();
+        }
+
+        // --- 批量操作 ---
+        function openBatchEdit(type) {
+            if (selectedIndices.size === 0) return alert('请先选择频道！');
+            currentBatchType = type;
+            const label = type === 'group' ? '请输入新的分组名称' : '请输入新的Logo链接';
+            document.getElementById('batchLabel').textContent = label;
+            document.getElementById('batchInput').value = '';
+            document.getElementById('batchInputModal').style.display = 'flex';
+        }
+
+        function applyBatchEdit() {
+            const val = document.getElementById('batchInput').value.trim();
+            const key = currentBatchType === 'group' ? 'group-title' : 'tvg-logo';
+            selectedIndices.forEach(idx => {
+                if(val) channelData[idx].params[key] = val;
+                else delete channelData[idx].params[key];
+            });
+            document.getElementById('batchInputModal').style.display = 'none';
+            toggleBatchMode(false); // 完成后退出批量
+        }
+
+        function batchDelete() {
+            if (selectedIndices.size === 0) return alert('未选择！');
+            if (!confirm(`确定删除选中的 ${selectedIndices.size} 个频道吗？`)) return;
+            
+            // 从后往前删，防止索引偏移
+            const sortedIndices = Array.from(selectedIndices).sort((a,b) => b-a);
+            sortedIndices.forEach(idx => channelData.splice(idx, 1));
+            
+            toggleBatchMode(false);
+        }
+
+        // --- 单个编辑弹窗逻辑 ---
+        const editModal = document.getElementById('editModal');
+        const dynamicForm = document.getElementById('dynamicForm');
+
+        function openEditModal(index) {
+            currentEditIndex = index;
+            const ch = channelData[index];
+            dynamicForm.innerHTML = ''; 
+
+            createInput('频道名称 (name)', 'name', ch.params['name']);
+            createInput('直播链接 (URL)', 'url', ch.url);
+            
+            for (let key in ch.params) {
+                if (key !== 'name') createInput(`属性: ${key}`, key, ch.params[key]);
+            }
+
+            // 补全常用
+            if (!ch.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
+            if (!ch.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
+
+            editModal.parentNode.style.display = 'flex';
+        }
+
+        function createInput(label, key, value) {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `<label class="form-label">${label}</label><input type="text" class="form-input" data-key="${key}" value="${value}">`;
+            dynamicForm.appendChild(div);
+        }
+
+        function addNewProperty() {
+            const key = prompt("请输入属性名 (例如 tvg-id):");
+            if (key) createInput(`属性: ${key}`, key, '');
+        }
+
+        function saveChannelData() {
+            const inputs = dynamicForm.querySelectorAll('input');
+            const ch = channelData[currentEditIndex];
+            inputs.forEach(input => {
+                const key = input.dataset.key;
+                const val = input.value.trim();
+                if (key === 'url') ch.url = val;
+                else {
+                    if (val) ch.params[key] = val;
+                    else delete ch.params[key];
+                }
+            });
+            closeEditModal();
+            renderGrid();
+        }
+        function closeEditModal() { editModal.parentNode.style.display = 'none'; }
+
+        // --- 通用工具 ---
+        function insertTemplate() {
+            const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="新分组", 新频道\nhttp://url\n`;
+            const editor = document.getElementById('codeEditor');
+            const start = editor.selectionStart;
+            editor.value = editor.value.slice(0, start) + tpl + editor.value.slice(editor.selectionEnd);
+        }
+
+        function saveAndDownload() {
+            syncDataToText();
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([document.getElementById('codeEditor').value], {type: "text/plain"}));
+            a.download = "Edited_" + currentFileName;
+            a.click();
+        }
+
+        function resetEditor() {
+            if(confirm('放弃修改？')) {
+                document.getElementById('step-edit').style.display = 'none';
+                document.getElementById('step-upload').style.display = 'block';
+                document.getElementById('fileInput').value = '';
+            }
+        }
+    </script>
+</body>
+</html>
