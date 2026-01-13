@@ -81,7 +81,7 @@
         /* 选中状态 */
         .grid-card.selected { border: 2px solid var(--primary-color); background: rgba(62, 166, 255, 0.1); }
         .check-circle { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
-        .grid-card.selecting .check-circle { display: block; } /* 批量模式下显示圈圈 */
+        .grid-card.selecting .check-circle { display: block; } 
         .grid-card.selected .check-circle { background: var(--primary-color); border-color: var(--primary-color); }
 
         .card-img-box { width: 100%; height: 0; padding-bottom: 56.25%; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
@@ -241,11 +241,9 @@
         let channelData = [];
         let headerLines = []; 
         let currentEditIndex = -1;
-        
-        // 批量操作变量
         let isBatchMode = false;
         let selectedIndices = new Set();
-        let currentBatchType = ''; // 'group' or 'logo'
+        let currentBatchType = '';
 
         function toggleMenu() { sidebar.classList.toggle('active'); overlay.classList.toggle('active'); }
         function switchTab(id, btn) {
@@ -256,7 +254,6 @@
             toggleMenu();
         }
 
-        // --- 播放器逻辑 ---
         document.getElementById('playBtn').addEventListener('click', () => {
             const url = document.getElementById('urlInput').value.trim();
             const v = document.getElementById('video');
@@ -271,7 +268,6 @@
             }
         });
 
-        // --- 文件处理 ---
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if(!file) return;
@@ -297,8 +293,6 @@
             }
         }
 
-        // --- 核心解析器 (Smart Parser v2) ---
-        // 修复：只要遇到新的EXTINF，就结算上一个频道，防止模板被吞
         function parseTextToData() {
             const lines = document.getElementById('codeEditor').value.split(/\r?\n/);
             channelData = [];
@@ -312,11 +306,8 @@
 
                 if (line.startsWith('#EXTINF:')) {
                     isHeader = false;
-                    if (current) channelData.push(current); // 结算上一个
-                    
+                    if (current) channelData.push(current);
                     current = { rawHeader: line, extras: [], url: '', params: {} };
-                    
-                    // 解析参数
                     const nameMatch = line.match(/,(.+)$/);
                     current.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
                     const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
@@ -329,14 +320,13 @@
                 } else if (current) {
                     if (!line.startsWith('#')) {
                         current.url = line;
-                        channelData.push(current); // 遇到URL结算
+                        channelData.push(current);
                         current = null;
                     } else {
                         current.extras.push(line);
                     }
                 }
             });
-            // 循环结束如果有残留（比如最后一个只有EXTINF没有URL的模板），也存进去
             if (current) channelData.push(current);
         }
 
@@ -350,17 +340,14 @@
                 newExtinf += `,${ch.params['name']}`;
                 res += newExtinf + "\n";
                 if (ch.extras.length) res += ch.extras.join('\n') + "\n";
-                if (ch.url) res += ch.url + "\n"; // 确保URL存在才换行
+                if (ch.url) res += ch.url + "\n";
                 res += "\n";
             });
             document.getElementById('codeEditor').value = res;
         }
 
-        // --- 模式切换 ---
         function setMode(mode) {
-            // 退出批量模式
             if(isBatchMode) toggleBatchMode(false);
-
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             if(mode==='text') document.getElementById('btnModeText').classList.add('active');
             if(mode==='visual') document.getElementById('btnModeVisual').classList.add('active');
@@ -386,7 +373,6 @@
             }
         }
 
-        // --- 渲染逻辑 ---
         function renderVisualList() {
             const list = document.getElementById('visualEditor');
             list.innerHTML = '';
@@ -412,13 +398,10 @@
                     card.classList.add('selecting');
                     if (selectedIndices.has(index)) card.classList.add('selected');
                 }
-                
                 card.onclick = () => handleCardClick(index);
-
                 const logo = ch.params['tvg-logo'];
                 const group = ch.params['group-title'] || '';
                 const imgHtml = logo ? `<img src="${logo}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
-
                 card.innerHTML = `
                     <div class="check-circle"></div>
                     <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${ch.params.name[0]}</div></div>
@@ -428,16 +411,13 @@
             });
         }
 
-        // --- 交互逻辑 (点击与批量) ---
         function handleCardClick(index) {
             if (isBatchMode) {
-                // 批量选择逻辑
                 if (selectedIndices.has(index)) selectedIndices.delete(index);
                 else selectedIndices.add(index);
-                renderGrid(); // 重新渲染以更新选中样式
+                renderGrid();
                 document.getElementById('batchCount').textContent = `已选 ${selectedIndices.size} 个频道`;
             } else {
-                // 单个编辑弹窗
                 openEditModal(index);
             }
         }
@@ -447,7 +427,6 @@
             selectedIndices.clear();
             const btn = document.getElementById('btnBatch');
             const bar = document.getElementById('batchBar');
-            
             if (isBatchMode) {
                 btn.classList.add('active');
                 btn.textContent = '❌ 退出选择';
@@ -461,7 +440,6 @@
             renderGrid();
         }
 
-        // --- 批量操作 ---
         function openBatchEdit(type) {
             if (selectedIndices.size === 0) return alert('请先选择频道！');
             currentBatchType = type;
@@ -479,21 +457,18 @@
                 else delete channelData[idx].params[key];
             });
             document.getElementById('batchInputModal').style.display = 'none';
-            toggleBatchMode(false); // 完成后退出批量
+            toggleBatchMode(false);
         }
 
         function batchDelete() {
             if (selectedIndices.size === 0) return alert('未选择！');
             if (!confirm(`确定删除选中的 ${selectedIndices.size} 个频道吗？`)) return;
-            
-            // 从后往前删，防止索引偏移
             const sortedIndices = Array.from(selectedIndices).sort((a,b) => b-a);
             sortedIndices.forEach(idx => channelData.splice(idx, 1));
-            
             toggleBatchMode(false);
         }
 
-        // --- 单个编辑弹窗逻辑 ---
+        // --- 核心修复：弹窗显示逻辑 ---
         const editModal = document.getElementById('editModal');
         const dynamicForm = document.getElementById('dynamicForm');
 
@@ -508,12 +483,11 @@
             for (let key in ch.params) {
                 if (key !== 'name') createInput(`属性: ${key}`, key, ch.params[key]);
             }
-
-            // 补全常用
             if (!ch.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
             if (!ch.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
 
-            editModal.parentNode.style.display = 'flex';
+            // 修正：直接控制弹窗元素显示
+            editModal.style.display = 'flex';
         }
 
         function createInput(label, key, value) {
@@ -543,9 +517,12 @@
             closeEditModal();
             renderGrid();
         }
-        function closeEditModal() { editModal.parentNode.style.display = 'none'; }
 
-        // --- 通用工具 ---
+        function closeEditModal() { 
+            // 修正：直接控制弹窗元素隐藏
+            editModal.style.display = 'none'; 
+        }
+
         function insertTemplate() {
             const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="新分组", 新频道\nhttp://url\n`;
             const editor = document.getElementById('codeEditor');
