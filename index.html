@@ -10,84 +10,72 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Oswald:wght@500&display=swap" rel="stylesheet">
     
     <style>
-        /* ================== 🎨 全局变量定义 ================== */
+        /* ================== 🎨 视觉系统 ================== */
         :root {
-            /* [默认模式] High-End Elegant (赛博黑绿) */
+            /* 默认模式 (Safe Mode) */
             --bg-color: #0d1117;
             --card-bg: #161b22;
             --text-main: #e6edf3;
             --text-sub: #8b949e;
-            --accent-color: #3fb950; /* 标志性的 Terminal Green */
+            --accent-color: #3fb950;
             --highlight: rgba(63, 185, 80, 0.15);
             --border-color: #30363d;
-            --shadow: 0 4px 12px rgba(0,0,0,0.5);
             --font-display: 'Oswald', sans-serif;
             --font-body: 'Inter', sans-serif;
         }
 
-        /* [Ambience 模式] 只有解锁后才会激活的变量 */
-        body.unlocked {
-            --bg-color: #120512; /* 深紫黑 */
-            --card-bg: #1f0a1f;
+        /* 隐藏模式 (Root Mode) */
+        body.root-access {
+            --bg-color: #0a000a;
+            --card-bg: #1a051a;
             --text-main: #ffe6ff;
             --text-sub: #d68bd6;
-            --accent-color: #ff55ff; /* 霓虹粉 */
-            --highlight: rgba(255, 85, 255, 0.15);
-            --border-color: #4d1a4d;
-            --shadow: 0 4px 20px rgba(255, 0, 255, 0.2);
+            --accent-color: #ff00ff;
+            --highlight: rgba(255, 0, 255, 0.2);
+            --border-color: #4d004d;
         }
 
-        /* ================== 🖼️ 基础布局 ================== */
         body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: var(--font-body);
-            height: 100vh; display: flex; flex-direction: column;
-            overflow: hidden; transition: background-color 0.8s ease, color 0.8s ease;
+            margin: 0; background-color: var(--bg-color); color: var(--text-main);
+            font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column;
+            overflow: hidden; transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* 顶部导航栏 */
         header {
-            padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(13, 17, 23, 0.95);
-            z-index: 50; backdrop-filter: blur(10px);
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(10px); z-index: 50; transition: border-color 0.5s;
         }
 
         .logo {
-            font-family: var(--font-display);
-            font-size: 24px; color: var(--accent-color);
+            font-family: var(--font-display); font-size: 24px; color: var(--accent-color);
             letter-spacing: 2px; cursor: pointer; user-select: none;
-            text-shadow: 0 0 5px var(--highlight);
-            transition: all 0.5s;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5); transition: 0.3s;
         }
         
-        /* 搜索框 */
-        .search-box {
-            position: relative; max-width: 300px; width: 40%;
-        }
+        .search-box { position: relative; width: 40%; max-width: 300px; }
         .search-input {
-            width: 100%; padding: 8px 15px 8px 35px;
-            background: var(--card-bg); border: 1px solid var(--border-color);
-            border-radius: 20px; color: var(--text-main); outline: none;
-            transition: 0.3s;
+            width: 100%; padding: 8px 15px 8px 35px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 20px;
+            color: var(--text-main); outline: none; transition: 0.3s;
         }
         .search-input:focus { border-color: var(--accent-color); box-shadow: 0 0 8px var(--highlight); }
         .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 12px; }
 
-        /* ================== 🧊 宫格导航系统 ================== */
-        #main-container {
-            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+        /* 布局容器 */
+        #main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
+        /* 进度条/加载条 */
+        #network-bar {
+            height: 2px; width: 0%; background: var(--accent-color);
+            position: absolute; top: 0; left: 0; transition: width 0.3s, opacity 0.3s; z-index: 60;
         }
 
-        /* 分类标签栏 */
         #category-bar {
             padding: 10px 20px; display: flex; gap: 15px; overflow-x: auto;
-            white-space: nowrap; scrollbar-width: none;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color); white-space: nowrap;
+            scrollbar-width: none; transition: border-color 0.5s;
         }
         #category-bar::-webkit-scrollbar { display: none; }
         
@@ -98,460 +86,395 @@
         }
         .cat-btn.active { color: var(--accent-color); font-weight: bold; }
         .cat-btn.active::after {
-            content: ''; position: absolute; bottom: 0; left: 0; width: 100%;
-            height: 2px; background: var(--accent-color);
-            box-shadow: 0 0 5px var(--accent-color);
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
+            background: var(--accent-color); box-shadow: 0 0 5px var(--accent-color);
         }
 
-        /* 宫格展示区 */
         #grid-view {
             flex: 1; padding: 20px; overflow-y: auto;
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 15px; align-content: start;
         }
 
         .channel-card {
             background: var(--card-bg); border: 1px solid var(--border-color);
             border-radius: 8px; overflow: hidden; cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s; position: relative;
-            display: flex; flex-direction: column; aspect-ratio: 16/11;
+            transition: all 0.3s; position: relative; aspect-ratio: 16/11;
+            display: flex; flex-direction: column;
         }
-        .channel-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            border-color: var(--accent-color);
-        }
+        .channel-card:hover { transform: translateY(-3px); border-color: var(--accent-color); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         
-        /* 图片容器：支持 jpg/png，自带占位符 */
         .card-img-wrap {
-            flex: 1; display: flex; align-items: center; justify-content: center;
-            background: #000; overflow: hidden; position: relative;
+            flex: 1; background: #000; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
         }
-        .card-img {
-            width: 100%; height: 100%; object-fit: cover; /* 撑满 */
-            opacity: 0.9; transition: 0.3s;
-        }
+        .card-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; transition: 0.3s; }
         .channel-card:hover .card-img { opacity: 1; transform: scale(1.05); }
+        .img-placeholder { color: #333; font-family: monospace; font-weight: bold; font-size: 18px; }
 
-        /* 默认无图时的占位文字 */
-        .img-placeholder {
-            position: absolute; color: #333; font-family: monospace; font-size: 20px; font-weight: bold;
-        }
+        .card-info { padding: 8px 10px; background: var(--card-bg); border-top: 1px solid var(--border-color); }
+        .card-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
-        .card-info {
-            padding: 8px 10px; background: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-        }
-        .card-title {
-            font-size: 12px; font-weight: 600; white-space: nowrap;
-            overflow: hidden; text-overflow: ellipsis; display: block;
-        }
-
-        /* ================== 🎬 沉浸式播放器 ================== */
+        /* 播放器 */
         #player-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100;
+            background: #000; z-index: 100; transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
             display: flex; flex-direction: column;
-            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         #player-modal.active { transform: translateY(0); }
-
-        /* 视频区域 */
-        #video-stage {
-            flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
-        }
+        
+        #video-stage { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         video { width: 100%; height: 100%; max-height: 100vh; }
+        #danmaku-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 
-        /* 弹幕层 - Canvas */
-        #danmaku-canvas {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 20;
-        }
+        .ui-layer { position: absolute; left: 0; width: 100%; z-index: 30; transition: opacity 0.3s; }
+        .ui-top { top: 0; height: 60px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .ui-bottom { bottom: 0; padding: 15px 20px 30px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); display: flex; gap: 10px; align-items: center; opacity: 0; }
+        #video-stage:hover .ui-bottom { opacity: 1; }
 
-        /* 播放器UI层 */
-        .player-ui-top {
-            position: absolute; top: 0; left: 0; width: 100%; height: 60px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-            z-index: 30; display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px;
-        }
-        .back-btn { color: #fff; font-size: 20px; cursor: pointer; text-shadow: 0 0 5px #000; }
+        .back-btn { color: #fff; cursor: pointer; font-size: 16px; font-weight: 600; text-shadow: 0 1px 2px #000; }
+        .live-tag { border: 1px solid #ff0000; color: #ff0000; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); font-family: var(--font-display); }
+        .live-dot { width: 6px; height: 6px; background: #ff0000; border-radius: 50%; animation: blink 1s infinite; }
+
+        .dm-input { flex: 1; background: rgba(255,255,255,0.15); border: none; border-radius: 20px; padding: 8px 15px; color: #fff; outline: none; backdrop-filter: blur(5px); }
+        .icon-btn { width: 36px; height: 36px; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; transition: 0.2s; }
+        .icon-btn:hover { background: rgba(255,255,255,0.2); }
+
+        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,0,0,0); } 100% { text-shadow: 0 0 10px rgba(255,0,0,0.8); } }
         
-        .live-badge {
-            background: rgba(255, 0, 0, 0.2); border: 1px solid red;
-            color: red; padding: 2px 8px; border-radius: 4px;
-            font-size: 10px; font-weight: bold; font-family: var(--font-display);
-            display: flex; align-items: center; gap: 5px;
-        }
-        .live-dot { width: 6px; height: 6px; background: red; border-radius: 50%; animation: blink 1s infinite; }
+        .triggering { animation: pulse-red 1s infinite alternate; color: #ff3333 !important; }
 
-        .player-ui-bottom {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-            z-index: 30; padding: 15px 20px 25px;
-            display: flex; gap: 10px; align-items: center;
-            opacity: 0; transition: opacity 0.3s;
-        }
-        #video-stage:hover .player-ui-bottom { opacity: 1; } /* 鼠标悬停显示 */
-
-        .dm-input {
-            flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 20px; padding: 8px 15px; color: #fff; outline: none; font-size: 14px;
-            backdrop-filter: blur(5px);
-        }
-        .control-btn {
-            color: #fff; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 50%; transition: 0.2s;
-        }
-        .control-btn:hover { background: rgba(255,255,255,0.2); }
-
-        @keyframes blink { 0%,100% {opacity:1} 50% {opacity:0} }
-
-        /* 加载动画 */
-        #loader {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: var(--accent-color); font-family: monospace; font-size: 14px;
-            display: none;
-        }
-        
-        /* 彩蛋触发反馈动画 */
-        @keyframes pulse-logo {
-            0% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.1); filter: brightness(1.5) drop-shadow(0 0 10px var(--accent-color)); }
-            100% { transform: scale(1); filter: brightness(1); }
-        }
-        .logo.triggering { animation: pulse-logo 1s infinite; }
-
+        #loader { position: absolute; color: var(--accent-color); font-family: monospace; display: none; }
     </style>
 </head>
 <body>
 
+<div id="network-bar"></div>
+
 <header>
-    <div class="logo" id="osb-logo">OSB<span style="font-size:12px; opacity:0.7;"> PLAYER</span></div>
+    <div class="logo" id="osb-logo">OSB<span style="font-size:12px; opacity:0.6;"> TERMINAL</span></div>
     <div class="search-box">
         <i class="fas fa-search search-icon"></i>
-        <input type="text" class="search-input" id="search" placeholder="FILTER CHANNELS...">
+        <input type="text" class="search-input" id="search" placeholder="SEARCH FREQUENCY...">
     </div>
 </header>
 
 <div id="main-container">
-    <div id="category-bar">
-        </div>
+    <div id="category-bar"></div>
     <div id="grid-view">
-        <div style="text-align:center; width:100%; padding:50px; color:#666;">LOADING DATABASE...</div>
+        <div style="margin-top:50px; width:100%; text-align:center; color:#555; font-family:monospace;">INITIALIZING...</div>
     </div>
 </div>
 
 <div id="player-modal">
     <div id="video-stage">
-        <div id="loader">CONNECTING STREAM...</div>
+        <div id="loader">ESTABLISHING LINK...</div>
         <video id="video" playsinline webkit-playsinline></video>
         <canvas id="danmaku-canvas"></canvas>
         
-        <div class="player-ui-top">
-            <div class="back-btn" onclick="closePlayer()"><i class="fas fa-chevron-left"></i> BACK</div>
-            <div class="live-badge"><div class="live-dot"></div> LIVE SIGNAL</div>
+        <div class="ui-layer ui-top">
+            <div class="back-btn" onclick="closePlayer()"><i class="fas fa-arrow-left"></i> EXIT</div>
+            <div class="live-tag"><div class="live-dot"></div> LIVE</div>
         </div>
 
-        <div class="player-ui-bottom">
-            <input type="text" class="dm-input" id="dm-text" placeholder="Send a ephemeral message...">
-            <div class="control-btn" onclick="sendDanmaku()"><i class="fas fa-paper-plane"></i></div>
-            <div class="control-btn" onclick="toggleDanmaku()"><i class="fas fa-comment-dots"></i></div>
-            <div class="control-btn" onclick="toggleFullScreen()"><i class="fas fa-expand"></i></div>
+        <div class="ui-layer ui-bottom">
+            <input type="text" class="dm-input" id="dm-text" placeholder="Broadcast message...">
+            <div class="icon-btn" onclick="sendDanmaku()"><i class="fas fa-paper-plane"></i></div>
+            <div class="icon-btn" onclick="toggleDanmaku()"><i class="fas fa-eye"></i></div>
+            <div class="icon-btn" onclick="toggleFullScreen()"><i class="fas fa-expand"></i></div>
         </div>
     </div>
 </div>
 
 <script>
-    // ================== 🔧 配置区域 ==================
-    const CONFIG = {
-        // 后端 M3U8 地址 (直接指向你的 live 仓库)
-        sourceUrl: 'https://raw.githubusercontent.com/satan-1412/live/main/TV.m3u8',
+    /* ================================================================
+       SYSTEM CORE CONFIGURATION
+       ================================================================
+       Warning: Tampering with the core signal processor may cause
+       system instability. 
+    */
+
+    const CORE = {
+        // [公开源] 正常模式默认加载，任何人都看得到的
+        publicSignal: 'https://raw.githubusercontent.com/satan-1412/live/refs/heads/main/no%20sex/TV_1(no%20sex).m3u8',
         
-        // 🔒 加密黑名单 (Base64编码)
-        // 对应： "成人在线", "成人电视台", "R18"
-        // 只有在解锁模式下，包含这些关键词的分类才会显示
-        hiddenKeywords: ["5oiQ5Lq65Zyo57q/", "5oiQ5Lq655S16KeG5Y+w", "UjE4"],
+        // [加密段] 这里存放的是混淆后的成人源地址片段
+        // 即使有人看源码，也只能看到一堆乱码，不知道这是什么
+        _s: [
+            "ODN1bS5WT", "y9uaWFt", "L2V2aWw", "vMjE0MS", "1uYXRh", "cy9tb2Mu", "dG5ldG5v", "Y3Jlc3U", "YnVodGln", "Lm3Ry", "Ly9zOk", "NwdHRo"
+        ],
         
-        logoTriggerTime: 10000 // 长按10秒触发
+        triggerDuration: 10000 // 10秒长按
     };
 
-    // ================== 🔐 核心逻辑 ==================
+    // 状态管理
+    let state = {
+        mode: 'SAFE', // 'SAFE' or 'ROOT'
+        channels: [],
+        category: 'ALL',
+        hls: null,
+        timer: null
+    };
+
+    // ================== 🔒 混淆解密模块 ==================
+    // 这是一个伪装成“网络延迟计算”的函数，实际上是拼凑真实URL
+    function _calcLatency() {
+        // 逻辑：将数组反转 -> 拼接 -> Base64解码 -> 再次反转字符串
+        const raw = CORE._s.slice().reverse().join('');
+        try {
+            const decoded = atob(raw); // Base64 decode
+            return decoded.split('').reverse().join(''); // String reverse
+        } catch(e) { return ''; }
+    }
     
-    let allChannels = [];
-    let currentCategory = 'ALL';
-    let isUnlocked = false; // 默认锁定
-    let hls = null;
-    let logoTimer = null;
-
-    // 1. 初始化
+    // 初始化
     window.onload = () => {
-        initDatabase();
-        initEasterEgg();
-        initDanmakuEngine();
+        loadSignal(CORE.publicSignal); // 默认加载公开源
+        initTrigger();
+        initDanmaku();
     };
 
-    function initDatabase() {
-        fetch(CONFIG.sourceUrl)
+    // ================== 📡 信号加载模块 ==================
+    function loadSignal(url) {
+        // 模拟加载条
+        const bar = document.getElementById('network-bar');
+        bar.style.width = '70%';
+        bar.style.opacity = '1';
+        
+        document.getElementById('grid-view').innerHTML = '<div style="margin-top:50px;width:100%;text-align:center;color:#666;font-family:monospace;">> SYNCING DATABASE...</div>';
+
+        fetch(url)
             .then(r => r.text())
-            .then(parseM3U8)
-            .catch(e => {
-                document.getElementById('grid-view').innerHTML = `<div style="padding:40px;text-align:center;color:red">CONNECTION FAILED</div>`;
+            .then(data => {
+                bar.style.width = '100%';
+                setTimeout(() => { bar.style.opacity = '0'; bar.style.width = '0%'; }, 300);
+                parseData(data);
+            })
+            .catch(() => {
+                bar.style.background = 'red';
+                document.getElementById('grid-view').innerHTML = '<div style="margin-top:50px;width:100%;text-align:center;color:red;">SIGNAL LOST</div>';
             });
     }
 
-    // 2. 解析器 (支持 tvg-logo, group-title)
-    function parseM3U8(data) {
-        allChannels = [];
-        const lines = data.split('\n');
-        
-        for (let i = 0; i < lines.length; i++) {
+    function parseData(m3u8) {
+        state.channels = [];
+        const lines = m3u8.split('\n');
+        for(let i=0; i<lines.length; i++) {
             const line = lines[i].trim();
-            if (line.startsWith('#EXTINF')) {
-                // 提取信息
-                const title = line.split(',')[1] || 'Unknown Channel';
-                const logoMatch = line.match(/tvg-logo="([^"]+)"/);
-                const groupMatch = line.match(/group-title="([^"]+)"/);
+            if(line.startsWith('#EXTINF')) {
+                const title = line.split(',')[1] || 'Unknown';
+                const logo = (line.match(/tvg-logo="([^"]+)"/) || [])[1] || '';
+                const group = (line.match(/group-title="([^"]+)"/) || [])[1] || 'Unclassified';
                 const url = lines[i+1] ? lines[i+1].trim() : '';
-                
-                if (url && url.startsWith('http')) {
-                    allChannels.push({
-                        title: title,
-                        logo: logoMatch ? logoMatch[1] : null,
-                        group: groupMatch ? groupMatch[1] : 'Unclassified',
-                        url: url
-                    });
+                if(url && url.startsWith('http')) {
+                    state.channels.push({ title, logo, group, url });
                 }
             }
         }
-        renderCategories();
-        renderGrid();
+        renderUI();
     }
 
-    // 3. 安全过滤检查
-    function isHiddenGroup(groupName) {
-        if (isUnlocked) return false; // 解锁后不过滤
-        // 解码黑名单进行比对
-        return CONFIG.hiddenKeywords.some(b64 => groupName.includes(atob(b64)));
-    }
-
-    // 4. 渲染分类栏
-    function renderCategories() {
+    // ================== 🎨 UI 渲染模块 ==================
+    function renderUI() {
+        // 1. 提取分类
         const groups = new Set(['ALL']);
-        allChannels.forEach(ch => {
-            if (!isHiddenGroup(ch.group)) groups.add(ch.group);
-        });
-
-        const bar = document.getElementById('category-bar');
-        bar.innerHTML = '';
+        state.channels.forEach(c => groups.add(c.group));
+        
+        // 2. 渲染导航栏
+        const nav = document.getElementById('category-bar');
+        nav.innerHTML = '';
         groups.forEach(g => {
             const btn = document.createElement('button');
-            btn.className = `cat-btn ${g === currentCategory ? 'active' : ''}`;
+            btn.className = `cat-btn ${g === state.category ? 'active' : ''}`;
             btn.innerText = g;
             btn.onclick = () => {
-                currentCategory = g;
-                document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                renderGrid();
+                state.category = g;
+                renderUI(); // 重新渲染
             };
-            bar.appendChild(btn);
+            nav.appendChild(btn);
         });
-    }
 
-    // 5. 渲染宫格 (Grid)
-    function renderGrid() {
+        // 3. 渲染宫格
         const grid = document.getElementById('grid-view');
         grid.innerHTML = '';
-        const search = document.getElementById('search').value.toLowerCase();
-
-        const filtered = allChannels.filter(ch => {
-            // 权限过滤
-            if (isHiddenGroup(ch.group)) return false;
-            // 分类过滤
-            if (currentCategory !== 'ALL' && ch.group !== currentCategory) return false;
-            // 搜索过滤
-            if (search && !ch.title.toLowerCase().includes(search)) return false;
+        const keyword = document.getElementById('search').value.toLowerCase();
+        
+        const list = state.channels.filter(c => {
+            if(state.category !== 'ALL' && c.group !== state.category) return false;
+            if(keyword && !c.title.toLowerCase().includes(keyword)) return false;
             return true;
         });
 
-        if (filtered.length === 0) {
-            grid.innerHTML = '<div style="width:100%;text-align:center;color:#555;">NO SIGNAL</div>';
+        if(list.length === 0) {
+            grid.innerHTML = '<div style="width:100%;text-align:center;padding:50px;color:#444;">NO DATA FOUND</div>';
             return;
         }
 
-        filtered.forEach(ch => {
-            const card = document.createElement('div');
-            card.className = 'channel-card';
-            card.onclick = () => openPlayer(ch.url);
+        list.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'channel-card';
+            el.onclick = () => playStream(c.url);
             
-            // 图片处理 (支持 jpg/png)
-            let imgHtml = `<div class="img-placeholder">OSB</div>`;
-            if (ch.logo) {
-                imgHtml = `<img src="${ch.logo}" class="card-img" onerror="this.style.display='none'">`;
-            }
-
-            card.innerHTML = `
-                <div class="card-img-wrap">${imgHtml}</div>
-                <div class="card-info">
-                    <span class="card-title">${ch.title}</span>
+            let img = c.logo ? `<img src="${c.logo}" class="card-img" onerror="this.style.display='none'">` : '';
+            
+            el.innerHTML = `
+                <div class="card-img-wrap">
+                    <span class="img-placeholder">OSB</span>
+                    ${img}
                 </div>
+                <div class="card-info"><span class="card-title">${c.title}</span></div>
             `;
-            grid.appendChild(card);
+            grid.appendChild(el);
         });
     }
 
-    // 搜索监听
-    document.getElementById('search').addEventListener('input', renderGrid);
+    document.getElementById('search').addEventListener('input', renderUI);
 
-    // ================== 🥚 彩蛋系统 (Long Press) ==================
-    function initEasterEgg() {
+    // ================== 🥚 系统彩蛋 (核心逻辑) ==================
+    function initTrigger() {
         const logo = document.getElementById('osb-logo');
         
-        const start = (e) => {
-            // e.preventDefault(); // 可能会阻止点击，视情况开启
+        const startAction = (e) => {
+            // e.preventDefault(); // 如影响点击可解开
+            state.timer = setTimeout(() => {
+                toggleSystemMode();
+            }, CORE.triggerDuration);
             logo.classList.add('triggering');
-            logoTimer = setTimeout(() => {
-                triggerUnlock();
-            }, CONFIG.logoTriggerTime);
         };
-        
-        const end = () => {
+
+        const endAction = () => {
+            clearTimeout(state.timer);
             logo.classList.remove('triggering');
-            clearTimeout(logoTimer);
         };
 
-        // 鼠标/触摸事件
-        logo.addEventListener('mousedown', start);
-        logo.addEventListener('touchstart', start);
-        logo.addEventListener('mouseup', end);
-        logo.addEventListener('mouseleave', end);
-        logo.addEventListener('touchend', end);
+        // 兼容 PC 和 移动端
+        logo.addEventListener('mousedown', startAction);
+        logo.addEventListener('touchstart', startAction);
+        logo.addEventListener('mouseup', endAction);
+        logo.addEventListener('mouseleave', endAction);
+        logo.addEventListener('touchend', endAction);
     }
 
-    function triggerUnlock() {
-        isUnlocked = !isUnlocked; // 切换状态
-        document.body.className = isUnlocked ? 'unlocked' : '';
-        // 震动反馈 (Android)
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-        // 重新渲染数据
-        renderCategories();
-        renderGrid();
-        alert(isUnlocked ? "SYSTEM OVERRIDE: ACCESS GRANTED" : "SYSTEM RESTORED");
+    function toggleSystemMode() {
+        const body = document.body;
+        // 震动反馈
+        if(navigator.vibrate) navigator.vibrate([200]);
+
+        if(state.mode === 'SAFE') {
+            // 切入 ROOT 模式 (成人)
+            state.mode = 'ROOT';
+            body.classList.add('root-access');
+            // 解密并加载隐藏源
+            const secretUrl = _calcLatency(); 
+            loadSignal(secretUrl);
+            alert("SYSTEM OVERRIDE: ROOT ACCESS GRANTED");
+        } else {
+            // 切回 SAFE 模式 (正常)
+            state.mode = 'SAFE';
+            body.classList.remove('root-access');
+            loadSignal(CORE.publicSignal);
+            alert("SYSTEM RESTORED: SAFE MODE");
+        }
+        state.category = 'ALL'; // 重置分类
     }
 
-    // ================== 📺 播放器逻辑 ==================
-    const playerModal = document.getElementById('player-modal');
+    // ================== 🎬 播放核心 ==================
     const video = document.getElementById('video');
+    const modal = document.getElementById('player-modal');
     const loader = document.getElementById('loader');
 
-    function openPlayer(url) {
-        playerModal.classList.add('active');
+    function playStream(url) {
+        modal.classList.add('active');
         loader.style.display = 'block';
         
-        if (Hls.isSupported()) {
-            if (hls) hls.destroy();
-            hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if(Hls.isSupported()) {
+            if(state.hls) state.hls.destroy();
+            state.hls = new Hls();
+            state.hls.loadSource(url);
+            state.hls.attachMedia(video);
+            state.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 loader.style.display = 'none';
                 video.play();
             });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        } else if(video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = url;
-            video.addEventListener('loadedmetadata', () => {
+            video.onloadedmetadata = () => {
                 loader.style.display = 'none';
                 video.play();
-            });
+            };
         }
     }
 
     function closePlayer() {
-        playerModal.classList.remove('active');
+        modal.classList.remove('active');
         video.pause();
-        if (hls) hls.destroy();
-        clearDanmaku(); // 清空弹幕
+        video.src = "";
+        if(state.hls) state.hls.destroy();
+        clearDanmaku();
     }
-
+    
     function toggleFullScreen() {
-        if (!document.fullscreenElement) {
-            document.getElementById('video-stage').requestFullscreen().catch(err => {});
-        } else {
-            document.exitFullscreen();
-        }
+        const stage = document.getElementById('video-stage');
+        if(!document.fullscreenElement) stage.requestFullscreen().catch(()=>{});
+        else document.exitFullscreen();
     }
 
-    // ================== 🚀 即时弹幕引擎 (Canvas) ==================
+    // ================== 🚀 极简弹幕引擎 ==================
     const canvas = document.getElementById('danmaku-canvas');
     const ctx = canvas.getContext('2d');
-    let danmakuList = [];
-    let showDanmaku = true;
+    let danmakus = [];
+    let showDM = true;
 
-    function initDanmakuEngine() {
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        requestAnimationFrame(drawDanmaku);
+    function initDanmaku() {
+        resize();
+        window.addEventListener('resize', resize);
+        loop();
     }
-
-    function resizeCanvas() {
+    function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        ctx.font = "bold 24px sans-serif";
+        ctx.font = "bold 22px sans-serif";
     }
-
     function sendDanmaku() {
         const input = document.getElementById('dm-text');
-        const text = input.value.trim();
-        if (!text) return;
-
-        danmakuList.push({
-            text: text,
+        const txt = input.value.trim();
+        if(!txt) return;
+        danmakus.push({
+            text: txt,
             x: canvas.width,
-            y: Math.random() * (canvas.height / 3) + 50, // 仅在上方1/3区域
+            y: 50 + Math.random() * (canvas.height/3),
             color: '#fff',
-            speed: 2 + Math.random() * 2
+            speed: 3 + Math.random() * 2
         });
-        
         input.value = '';
     }
-
-    document.getElementById('dm-text').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendDanmaku();
-    });
-
     function toggleDanmaku() {
-        showDanmaku = !showDanmaku;
-        canvas.style.opacity = showDanmaku ? 1 : 0;
+        showDM = !showDM;
+        canvas.style.opacity = showDM ? 1 : 0;
     }
-
-    function clearDanmaku() {
-        danmakuList = [];
-    }
-
-    function drawDanmaku() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (showDanmaku) {
-            for (let i = 0; i < danmakuList.length; i++) {
-                const dm = danmakuList[i];
-                dm.x -= dm.speed;
-                
-                // 绘制文字
-                ctx.fillStyle = dm.color;
-                ctx.shadowColor = "black";
+    function clearDanmaku() { danmakus = []; }
+    
+    function loop() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        if(showDM) {
+            for(let i=0; i<danmakus.length; i++) {
+                let d = danmakus[i];
+                d.x -= d.speed;
+                ctx.fillStyle = d.color;
+                ctx.shadowColor = 'black';
                 ctx.shadowBlur = 4;
-                ctx.fillText(dm.text, dm.x, dm.y);
-
-                // 移除出界的弹幕
-                if (dm.x < -ctx.measureText(dm.text).width) {
-                    danmakuList.splice(i, 1);
-                    i--;
+                ctx.fillText(d.text, d.x, d.y);
+                if(d.x < -ctx.measureText(d.text).width) {
+                    danmakus.splice(i,1); i--;
                 }
             }
         }
-        requestAnimationFrame(drawDanmaku);
+        requestAnimationFrame(loop);
     }
+    document.getElementById('dm-text').addEventListener('keypress', e => {
+        if(e.key==='Enter') sendDanmaku();
+    });
 
 </script>
 </body>
