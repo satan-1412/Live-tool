@@ -8,65 +8,40 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <style>
-        /* --- 全局样式 --- */
+        /* --- 1. 全局变量与重置 --- */
         :root {
             --bg-color: #0f0f0f;
             --surface-color: #1e1e1e;
-            --surface-hover: #2a2a2a;
+            --surface-active: #333333;
             --primary-color: #3ea6ff;
+            --accent-color: #a54aff;
             --danger-color: #ff4d4d;
             --text-color: #ffffff;
             --text-gray: #aaaaaa;
             --border-color: rgba(255, 255, 255, 0.15);
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- 导航栏 --- */
-        .navbar {
-            display: flex; align-items: center; height: 60px; padding: 0 20px;
-            background-color: rgba(15, 15, 15, 0.95); border-bottom: 1px solid var(--border-color);
-            position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);
-        }
+        /* --- 2. 布局组件 --- */
+        .navbar { display: flex; align-items: center; height: 60px; padding: 0 20px; background: rgba(15,15,15,0.95); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
         .menu-btn { background: none; border: none; color: white; font-size: 24px; padding: 5px; margin-right: 15px; }
-        .app-title { font-size: 18px; font-weight: 600; background: linear-gradient(90deg, var(--primary-color), #a54aff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .app-title { font-size: 18px; font-weight: 600; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        /* --- 侧边栏 --- */
-        .sidebar {
-            position: fixed; top: 0; left: 0; height: 100%; width: 280px;
-            background-color: var(--surface-color); transform: translateX(-100%); transition: 0.3s;
-            z-index: 200; box-shadow: 4px 0 15px rgba(0,0,0,0.5); 
-            display: flex; flex-direction: column;
-        }
+        .sidebar { position: fixed; top: 0; left: 0; height: 100%; width: 280px; background: var(--surface-color); transform: translateX(-100%); transition: 0.3s; z-index: 200; box-shadow: 4px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
         .sidebar.active { transform: translateX(0); }
-        .sidebar-header {
-            height: 60px; display: flex; align-items: center; padding-left: 20px; 
-            border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-gray); flex-shrink: 0;
-        }
-        .menu-category { padding: 15px 20px 5px; color: var(--text-gray); font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .sidebar-header { height: 60px; display: flex; align-items: center; padding-left: 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-gray); flex-shrink: 0; }
         .menu-item { display: flex; align-items: center; padding: 12px 20px; color: white; transition: 0.2s; border-left: 3px solid transparent; cursor: pointer; }
         .menu-item.active { border-left-color: var(--primary-color); color: var(--primary-color); background: rgba(255,255,255,0.05); }
-        
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: 0.3s; z-index: 150; backdrop-filter: blur(2px); }
         .overlay.active { opacity: 1; visibility: visible; }
 
-        /* --- 主内容 --- */
-        .main-container { flex: 1; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto; overflow-y: auto; }
+        .main-container { flex: 1; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto; overflow-y: auto; padding-bottom: 80px; }
         .section-view { display: none; width: 100%; animation: fadeIn 0.3s; }
         .section-view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
 
-        /* --- 播放测试页 --- */
+        /* --- 3. 播放测试页 --- */
         .section-title { font-size: 20px; font-weight: bold; margin: 20px 0 25px; text-align: center; color: var(--primary-color); }
         .input-group { display: flex; width: 100%; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
         .url-input { flex: 1; background: var(--surface-color); border: none; padding: 15px; color: white; }
@@ -75,75 +50,60 @@
         #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         #statusMsg { text-align: center; font-size: 12px; color: #aaa; margin-top: 5px; }
 
-        /* --- 编辑页 --- */
-        .upload-area {
-            border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center;
-            background: rgba(255,255,255,0.02); margin-bottom: 20px; cursor: pointer;
-        }
-        .btn-upload { background: var(--primary-color); color: #000; padding: 10px 25px; border-radius: 20px; border: none; margin-top: 15px; font-weight: bold; }
-
-        /* 工具栏 */
-        .editor-toolbar {
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 15px; background: var(--surface-color); padding: 10px; border-radius: 8px; flex-wrap: wrap; gap: 10px;
-        }
+        /* --- 4. 编辑页工具栏 --- */
+        .editor-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--surface-color); padding: 10px; border-radius: 8px; flex-wrap: wrap; gap: 10px; }
         .toolbar-group { display: flex; gap: 8px; }
-        .tool-btn { 
-            background: rgba(255,255,255,0.1); color: white; border: none; 
-            padding: 8px 12px; border-radius: 6px; font-size: 13px; 
-            display: flex; align-items: center; gap: 5px; white-space: nowrap;
-        }
+        .tool-btn { background: rgba(255,255,255,0.1); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer; }
         .tool-btn.active { background: var(--primary-color); color: #000; }
         .tool-btn.primary { background: var(--primary-color); color: #000; font-weight: bold; }
-        
+        .tool-btn.danger { background: rgba(255, 77, 77, 0.2); color: var(--danger-color); border: 1px solid var(--danger-color); }
+
         @media (max-width: 600px) {
             .tool-btn { padding: 6px 10px; font-size: 12px; }
-            .toolbar-group { gap: 15px; }
+            .toolbar-group { gap: 10px; }
             .editor-toolbar { justify-content: center; }
         }
 
-        #codeEditor { width: 100%; height: 500px; background: #121212; color: #d4d4d4; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre; }
+        /* --- 5. 编辑模式视图 --- */
+        #codeEditor { width: 100%; height: 500px; background: #121212; color: #d4d4d4; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre; resize: vertical; }
         
-        /* 列表模式 */
-        .channel-item {
-            background: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 8px;
-            padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px;
-        }
-        .drag-handle { cursor: grab; color: var(--text-gray); font-size: 18px; padding: 5px; }
+        .channel-item { background: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 8px; padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px; }
         .channel-info { flex: 1; overflow: hidden; }
         .ch-name { font-weight: bold; font-size: 14px; }
         .ch-url { font-size: 11px; color: var(--text-gray); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .drag-handle { cursor: grab; color: var(--text-gray); font-size: 18px; padding: 5px; }
 
-        /* 资料模式 (Grid) */
-        #gridEditor {
-            display: none; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; padding-bottom: 50px;
-        }
-        .grid-card {
-            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;
-            cursor: pointer; transition: transform 0.2s, border-color 0.2s; position: relative;
-        }
+        /* --- 6. 资料模式 (Grid) & 批量选择 --- */
+        #gridEditor { display: none; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; padding-bottom: 100px; }
+        .grid-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
         .grid-card:hover { transform: translateY(-3px); border-color: var(--primary-color); }
-        .card-img-box {
-            width: 100%; height: 0; padding-bottom: 56.25%; background: #000; position: relative; display: flex; align-items: center; justify-content: center;
-        }
+        
+        /* 选中状态 */
+        .grid-card.selected { border: 2px solid var(--primary-color); background: rgba(62, 166, 255, 0.1); }
+        .check-circle { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
+        .grid-card.selecting .check-circle { display: block; } /* 批量模式下显示圈圈 */
+        .grid-card.selected .check-circle { background: var(--primary-color); border-color: var(--primary-color); }
+
+        .card-img-box { width: 100%; height: 0; padding-bottom: 56.25%; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
         .card-img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; background: #222; }
         .card-placeholder { position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #444; font-weight: bold; }
         .card-info { padding: 10px; }
         .card-name { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-tag { font-size: 10px; color: var(--primary-color); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
-        /* --- 弹窗体系 --- */
-        .modal-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 1000; display: none;
-            justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        /* --- 7. 底部批量操作栏 --- */
+        .batch-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #252525; border-top: 1px solid var(--primary-color);
+            padding: 15px 20px; display: none; justify-content: space-between; align-items: center; z-index: 300;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
         }
-        .edit-modal {
-            background: #252525; border-radius: 12px; width: 90%; max-width: 400px;
-            max-height: 85vh; display: flex; flex-direction: column;
-            border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-        }
-        .edit-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: white; display: flex; justify-content: space-between; }
+        .batch-info { font-weight: bold; font-size: 14px; }
+        .batch-actions { display: flex; gap: 10px; }
+
+        /* --- 8. 弹窗样式 --- */
+        .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .edit-modal { background: #252525; border-radius: 12px; width: 90%; max-width: 400px; max-height: 85vh; display: flex; flex-direction: column; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .edit-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: white; display: flex; justify-content: space-between; align-items: center; }
         .edit-body { padding: 20px; overflow-y: auto; }
         .edit-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
         
@@ -151,11 +111,21 @@
         .form-label { display: block; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
         .form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; color: white; font-size: 14px; }
         .form-input:focus { border-color: var(--primary-color); }
-        .reset-btn { background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 8px 20px; border-radius: 6px; font-size: 12px; margin-top: 15px; display: inline-block; }
-
+        
+        .upload-area { border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center; background: rgba(255,255,255,0.02); margin-bottom: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
+
+    <div class="batch-bar" id="batchBar">
+        <div class="batch-info" id="batchCount">已选 0 个频道</div>
+        <div class="batch-actions">
+            <button class="tool-btn" onclick="openBatchEdit('group')">改分组</button>
+            <button class="tool-btn" onclick="openBatchEdit('logo')">改Logo</button>
+            <button class="tool-btn danger" onclick="batchDelete()">删除</button>
+            <button class="tool-btn" onclick="toggleBatchMode(false)">取消</button>
+        </div>
+    </div>
 
     <div class="modal-bg" id="confirmModal">
         <div class="edit-modal" style="max-width:300px; text-align:center;">
@@ -173,13 +143,30 @@
     <div class="modal-bg" id="editModal">
         <div class="edit-modal">
             <div class="edit-header">
-                <span>编辑频道资料</span>
+                <span id="editModalTitle">编辑频道资料</span>
                 <span onclick="closeEditModal()" style="cursor:pointer; font-size:20px;">&times;</span>
             </div>
             <div class="edit-body" id="dynamicForm"></div>
             <div class="edit-footer">
-                <button class="tool-btn" onclick="closeEditModal()">取消</button>
-                <button class="tool-btn primary" onclick="saveChannelData()">保存修改</button>
+                <button class="tool-btn" onclick="addNewProperty()" style="margin-right:auto; opacity:0.7;">+ 属性</button>
+                <button class="tool-btn" onclick="closeEditModal()">取消修改</button>
+                <button class="tool-btn primary" onclick="saveChannelData()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="batchInputModal">
+        <div class="edit-modal" style="max-width:320px;">
+            <div class="edit-header">批量修改</div>
+            <div class="edit-body">
+                <div class="form-group">
+                    <label class="form-label" id="batchLabel">请输入新值</label>
+                    <input type="text" class="form-input" id="batchInput">
+                </div>
+            </div>
+            <div class="edit-footer">
+                <button class="tool-btn" onclick="document.getElementById('batchInputModal').style.display='none'">取消</button>
+                <button class="tool-btn primary" onclick="applyBatchEdit()">确认</button>
             </div>
         </div>
     </div>
@@ -188,7 +175,6 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">工具箱菜单</div>
-        <div class="menu-category">常用功能</div>
         <div class="menu-item active" onclick="switchTab('tester', this)"><span>📺 在线链接测试</span></div>
         <div class="menu-item" onclick="switchTab('editor', this)"><span>📝 直播源在线编辑</span></div>
     </aside>
@@ -228,6 +214,7 @@
                         <button class="tool-btn" id="btnModeGrid" onclick="setMode('grid')">▦ 资料</button>
                     </div>
                     <div class="toolbar-group">
+                        <button class="tool-btn" id="btnBatch" onclick="toggleBatchMode()" style="display:none;">✅ 批量选择</button>
                         <button class="tool-btn" id="btnAddTemplate" onclick="insertTemplate()">➕ 添加</button>
                         <button class="tool-btn primary" onclick="saveAndDownload()">💾 保存</button>
                     </div>
@@ -237,23 +224,28 @@
                 <ul id="visualEditor" style="display:none; list-style:none;"></ul>
                 <div id="gridEditor" style="display:none;"></div>
                 
-                <div style="text-align:center;">
-                    <button onclick="resetEditor()" class="reset-btn">❌ 放弃修改并重新上传</button>
+                <div style="text-align:center; margin-top:20px;">
+                    <button onclick="resetEditor()" style="background:none; border:none; color:var(--danger-color); cursor:pointer;">❌ 放弃修改并重新上传</button>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // --- 逻辑初始化 ---
+        // --- 初始化变量 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         const confirmModal = document.getElementById('confirmModal');
         let fileContentBuffer = '';
         let currentFileName = 'playlist.m3u';
-        let channelData = []; 
-        let headerLines = []; // 存储文件头部 (EXTM3U等)
+        let channelData = [];
+        let headerLines = []; 
         let currentEditIndex = -1;
+        
+        // 批量操作变量
+        let isBatchMode = false;
+        let selectedIndices = new Set();
+        let currentBatchType = ''; // 'group' or 'logo'
 
         function toggleMenu() { sidebar.classList.toggle('active'); overlay.classList.toggle('active'); }
         function switchTab(id, btn) {
@@ -264,7 +256,7 @@
             toggleMenu();
         }
 
-        // --- 播放器 ---
+        // --- 播放器逻辑 ---
         document.getElementById('playBtn').addEventListener('click', () => {
             const url = document.getElementById('urlInput').value.trim();
             const v = document.getElementById('video');
@@ -275,11 +267,11 @@
                 hls.on(Hls.Events.MANIFEST_PARSED, () => { v.play(); msg.textContent = "✅ 正在播放"; msg.style.color="#4caf50"; });
                 hls.on(Hls.Events.ERROR, (e,d) => { if(d.fatal) { msg.textContent = "❌ 加载失败"; msg.style.color="#ff4d4d"; } });
             } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
-                v.src=url; v.play(); msg.textContent = "✅ 原生播放";
+                v.src=url; v.play();
             }
         });
 
-        // --- 文件读取 ---
+        // --- 文件处理 ---
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if(!file) return;
@@ -298,251 +290,17 @@
                 document.getElementById('codeEditor').value = fileContentBuffer;
                 document.getElementById('step-upload').style.display = 'none';
                 document.getElementById('step-edit').style.display = 'block';
-                parseTextToData(); // 核心解析
+                parseTextToData();
                 setMode('text');
             } else {
                 document.getElementById('fileInput').value = '';
             }
         }
 
-        // --- 核心逻辑: 全量解析与重建 ---
-        const visualEditor = document.getElementById('visualEditor');
-        const codeEditor = document.getElementById('codeEditor');
-        const gridEditor = document.getElementById('gridEditor');
-
-        function setMode(mode) {
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            if(mode==='text') document.getElementById('btnModeText').classList.add('active');
-            if(mode==='visual') document.getElementById('btnModeVisual').classList.add('active');
-            if(mode==='grid') document.getElementById('btnModeGrid').classList.add('active');
-            
-            codeEditor.style.display = 'none';
-            visualEditor.style.display = 'none';
-            gridEditor.style.display = 'none';
-            document.getElementById('btnAddTemplate').style.display = 'none';
-
-            if(mode === 'text') {
-                codeEditor.style.display = 'block';
-                document.getElementById('btnAddTemplate').style.display = 'flex';
-                syncDataToText();
-            } else if (mode === 'visual') {
-                visualEditor.style.display = 'block';
-                parseTextToData(); 
-                renderVisualList();
-            } else if (mode === 'grid') {
-                gridEditor.style.display = 'grid';
-                parseTextToData();
-                renderGrid();
-            }
-        }
-
-        // 1. 解析 (Text -> Data Structure)
-        // 改进：保存所有非标准行，确保不缩略内容
+        // --- 核心解析器 (Smart Parser v2) ---
+        // 修复：只要遇到新的EXTINF，就结算上一个频道，防止模板被吞
         function parseTextToData() {
-            const rawText = codeEditor.value;
-            const lines = rawText.split(/\r?\n/);
+            const lines = document.getElementById('codeEditor').value.split(/\r?\n/);
             channelData = [];
-            headerLines = []; // 重置头部
-
-            let currentChannel = null;
-            let isHeader = true; // 标记是否还在处理文件头
-
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
-                
-                // 跳过纯空行 (为了之后标准化输出)
-                if (line === '') continue;
-
-                // 如果遇到 #EXTINF，说明文件头结束，开始频道块
-                if (line.startsWith('#EXTINF:')) {
-                    isHeader = false;
-                    // 如果之前有一个频道没存，先存了 (理论上不会，因为遇到URL才结束)
-                    if (currentChannel) {
-                        channelData.push(currentChannel);
-                    }
-                    // 新建频道对象
-                    currentChannel = {
-                        extinf: line, // 保存原始 EXTINF 行
-                        extras: [],   // 保存中间的注释或其他标签
-                        url: '',
-                        params: {}
-                    };
-                    parseParams(currentChannel, line);
-                } 
-                else if (isHeader) {
-                    // 还没遇到第一个 EXTINF，都算文件头 (如 #EXTM3U)
-                    headerLines.push(line);
-                } 
-                else if (currentChannel) {
-                    // 已经在频道块里
-                    if (!line.startsWith('#')) {
-                        // 这是一行URL，频道结束
-                        currentChannel.url = line;
-                        channelData.push(currentChannel);
-                        currentChannel = null; 
-                    } else {
-                        // 这是 #EXTVLCOPT 或其他注释，存入 extras
-                        currentChannel.extras.push(line);
-                    }
-                }
-            }
-        }
-
-        // 解析 params (tvg-logo 等)
-        function parseParams(ch, line) {
-            // 提取名字
-            const nameMatch = line.match(/,(.+)$/);
-            ch.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
-            
-            // 提取 key="value"
-            const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
-            let match;
-            while ((match = regex.exec(line)) !== null) {
-                ch.params[match[1]] = match[2];
-            }
-        }
-
-        // 2. 重建 (Data -> Text)
-        // 改进：标准化空行，确保移动后美观
-        function syncDataToText() {
-            let res = headerLines.join('\n') + "\n\n"; // 头部后加空行
-            
-            channelData.forEach(ch => {
-                // 重建 EXTINF 行 (根据 params 更新)
-                let newExtinf = '#EXTINF:-1';
-                for (let key in ch.params) {
-                    if (key !== 'name') {
-                        newExtinf += ` ${key}="${ch.params[key]}"`;
-                    }
-                }
-                newExtinf += `,${ch.params['name']}`;
-                
-                // 拼接：EXTINF + 额外行 + URL
-                res += newExtinf + "\n";
-                if (ch.extras.length > 0) {
-                    res += ch.extras.join('\n') + "\n";
-                }
-                res += ch.url + "\n\n"; // 强制每个频道后加空行
-            });
-            
-            codeEditor.value = res;
-        }
-
-        // --- 渲染与交互 ---
-        function renderVisualList() {
-            visualEditor.innerHTML = '';
-            channelData.forEach(ch => {
-                const li = document.createElement('li');
-                li.className = 'channel-item';
-                li.innerHTML = `<div class="channel-info"><div class="ch-name">${ch.params.name}</div><div class="ch-url">${ch.url}</div></div><div class="drag-handle">☰</div>`;
-                visualEditor.appendChild(li);
-            });
-            if(!visualEditor.sortable) {
-                visualEditor.sortable = Sortable.create(visualEditor, { 
-                    handle: '.drag-handle', animation: 150,
-                    onEnd: (evt) => {
-                        const item = channelData.splice(evt.oldIndex, 1)[0];
-                        channelData.splice(evt.newIndex, 0, item);
-                    }
-                });
-            }
-        }
-
-        function renderGrid() {
-            gridEditor.innerHTML = '';
-            channelData.forEach((ch, index) => {
-                const card = document.createElement('div');
-                card.className = 'grid-card';
-                card.onclick = () => openEditModal(index);
-                
-                const logo = ch.params['tvg-logo'];
-                const group = ch.params['group-title'] || '';
-                const imgHtml = logo ? `<img src="${logo}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
-                
-                card.innerHTML = `
-                    <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${ch.params.name[0]}</div></div>
-                    <div class="card-info"><div class="card-tag">${group}</div><div class="card-name">${ch.params.name}</div></div>
-                `;
-                gridEditor.appendChild(card);
-            });
-        }
-
-        // --- 弹窗编辑逻辑 ---
-        const editModal = document.getElementById('editModal');
-        const dynamicForm = document.getElementById('dynamicForm');
-
-        function openEditModal(index) {
-            currentEditIndex = index;
-            const ch = channelData[index];
-            dynamicForm.innerHTML = ''; 
-
-            // 1. 必显字段
-            createInput('频道名称 (name)', 'name', ch.params['name']);
-            createInput('直播链接 (URL)', 'url', ch.url);
-            
-            // 2. 已有属性 (tvg-logo, group-title 等)
-            for (let key in ch.params) {
-                if (key !== 'name') {
-                    createInput(`属性: ${key}`, key, ch.params[key]);
-                }
-            }
-
-            // 3. 常用缺失属性补全 (如果没识别到，添加空框方便用户填)
-            if (!ch.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
-            if (!ch.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
-
-            editModal.parentNode.style.display = 'flex';
-        }
-
-        function createInput(label, key, value) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `<label class="form-label">${label}</label><input type="text" class="form-input" data-key="${key}" value="${value}">`;
-            dynamicForm.appendChild(div);
-        }
-
-        function closeEditModal() { editModal.parentNode.style.display = 'none'; }
-
-        function saveChannelData() {
-            const inputs = dynamicForm.querySelectorAll('input');
-            const ch = channelData[currentEditIndex];
-            
-            inputs.forEach(input => {
-                const key = input.dataset.key;
-                const val = input.value.trim();
-                if (key === 'url') {
-                    ch.url = val;
-                } else {
-                    if (val) ch.params[key] = val;
-                    else delete ch.params[key];
-                }
-            });
-            closeEditModal();
-            renderGrid();
-        }
-
-        // --- 工具 ---
-        function insertTemplate() {
-            const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="新分组", 新频道\nhttp://url\n`;
-            const start = codeEditor.selectionStart;
-            codeEditor.value = codeEditor.value.slice(0, start) + tpl + codeEditor.value.slice(codeEditor.selectionEnd);
-        }
-
-        function saveAndDownload() {
-            syncDataToText();
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(new Blob([codeEditor.value], {type: "text/plain"}));
-            a.download = "Edited_" + currentFileName;
-            a.click();
-        }
-
-        function resetEditor() {
-            if(confirm('确定要放弃当前修改吗？')) {
-                document.getElementById('step-edit').style.display = 'none';
-                document.getElementById('step-upload').style.display = 'block';
-                document.getElementById('fileInput').value = '';
-            }
-        }
-    </script>
-</body>
-</html>
+            headerLines = [];
+            let current = null;
