@@ -12,22 +12,20 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* ================== V4.0 视觉修复 ================== */
+        /* ================== V4.1 修复版样式 ================== */
         :root {
             --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #fff;
-            --text-sub: #aaa;
-            --accent: #00ff88; /* 正常模式：极客绿 */
-            --gap: 15px;
+            --card-bg: #222;
+            --text-main: #eee;
+            --text-sub: #888;
+            --accent: #00ff88;
         }
 
-        /* 成人模式配色 */
         body.root-mode {
-            --bg-color: #2a0a18; /* 深红黑 */
+            --bg-color: #2a0a18;
             --card-bg: #3d1020;
-            --accent: #ff0055; /* 霓虹粉 */
-            --text-main: #xffddee;
+            --accent: #ff0055;
+            --text-main: #ffccdd;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -36,175 +34,154 @@
             margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: sans-serif;
             height: 100vh; display: flex; flex-direction: column;
             overflow: hidden;
             transition: background-color 0.5s;
         }
 
-        /* 顶部导航 */
+        /* 头部 */
         header {
-            padding: 10px 15px;
-            background: rgba(30,30,30,0.9);
-            display: flex; align-items: center; gap: 10px;
+            padding: 12px 15px;
+            background: rgba(30,30,30,0.95);
+            display: flex; align-items: center; gap: 12px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            z-index: 50;
+            z-index: 100; /* 保证最高层级 */
         }
 
         .logo {
             font-size: 20px; font-weight: 900; color: var(--accent);
             letter-spacing: -1px; white-space: nowrap;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
-            transition: 0.3s;
+            transition: 0.3s; cursor: pointer;
+            padding: 5px; /* 增加点击区域 */
         }
 
-        .search-box {
-            flex: 1; position: relative;
-        }
+        .search-box { flex: 1; position: relative; }
         .search-input {
             width: 100%; background: #333; border: none;
-            border-radius: 6px; padding: 8px 10px 8px 30px;
+            border-radius: 4px; padding: 8px 10px 8px 30px;
             color: #fff; font-size: 14px;
         }
-        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #777; font-size: 12px; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #777; }
 
-        /* 内容区域 */
-        #main-container {
-            flex: 1; display: flex; flex-direction: column; overflow: hidden;
-        }
+        /* 内容区 */
+        #main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-        /* 分类栏 (横向滚动) */
+        /* 导航 */
         #nav-scroll {
             padding: 10px 15px; display: flex; gap: 10px;
             overflow-x: auto; white-space: nowrap;
             background: var(--bg-color);
-            scrollbar-width: none; /* Firefox 隐藏滚动条 */
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0; /* 防止被压缩 */
         }
-        #nav-scroll::-webkit-scrollbar { display: none; } /* Chrome 隐藏滚动条 */
-
         .nav-btn {
-            padding: 6px 14px; border-radius: 20px;
+            padding: 5px 12px; border-radius: 20px;
             background: rgba(255,255,255,0.1); color: #ccc;
             border: none; font-size: 13px;
         }
         .nav-btn.active { background: var(--accent); color: #000; font-weight: bold; }
 
-        /* ======== 核心修复：宫格布局 ======== */
+        /* ======== 修复核心：改为 Flex 布局 (拒绝 Grid 兼容性问题) ======== */
         #channel-grid {
-            flex: 1; padding: 15px; overflow-y: auto;
-            display: grid;
-            /* 手机端默认双列，每列自适应 */
-            grid-template-columns: repeat(2, 1fr); 
-            grid-auto-rows: max-content; /* 高度根据内容定 */
-            gap: 15px; /* 间距 */
-            align-content: start;
+            flex: 1; padding: 10px; overflow-y: auto;
+            display: flex; flex-wrap: wrap; /* 关键：允许换行 */
+            gap: 10px; align-content: flex-start; /* 内容置顶 */
         }
 
-        /* 电脑端适配：屏幕宽了就变多列 */
-        @media (min-width: 768px) {
-            #channel-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-        }
-
+        /* 卡片样式 */
         .card {
-            background: var(--card-bg); border-radius: 8px;
-            overflow: hidden; position: relative;
+            /* 手机端强制一行两列：(100% - 间距) / 2 */
+            width: calc(50% - 5px); 
+            background: var(--card-bg); 
+            border-radius: 6px;
+            overflow: hidden; 
+            position: relative;
             display: flex; flex-direction: column;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            transition: 0.2s;
+            margin-bottom: 5px; /* 额外保险 */
         }
-        .card:active { transform: scale(0.98); }
 
-        /* 图片容器：固定比例 16:9，防止图片太高 */
+        /* 电脑端适配：一行多列 */
+        @media (min-width: 768px) {
+            .card { width: calc(20% - 8px); }
+        }
+
+        /* 图片容器 16:9 */
         .card-img-wrap {
-            width: 100%; aspect-ratio: 16/9; 
+            width: 100%; padding-top: 56.25%; /* 16:9 比例撑开 */
             background: #000; position: relative;
         }
         .card-img {
-            width: 100%; height: 100%; object-fit: cover; /* 裁剪填满，不拉伸 */
-            display: block; opacity: 1; transition: 0.3s;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; 
+            object-fit: cover;
         }
-        
-        /* 图片加载失败时的默认图标 */
-        .card-icon-fallback {
-            position: absolute; top:0; left:0; width:100%; height:100%;
+        .card-fallback {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            background: #222; color: #444; font-size: 30px;
+            color: #444; font-size: 24px;
         }
 
         .card-title {
-            padding: 8px 10px; font-size: 13px; color: #ddd;
+            padding: 8px 5px; font-size: 12px; color: #ddd;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            text-align: center; background: rgba(0,0,0,0.2);
+            text-align: center;
         }
 
-        /* ======== 播放器 & 弹幕 ======== */
+        /* 播放器 */
         #player-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100;
+            background: #000; z-index: 200;
             display: none; flex-direction: column;
         }
         #player-modal.active { display: flex; }
 
-        /* 视频区：占满剩余空间 */
         #video-stage {
-            flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
-            background: #000; overflow: hidden;
+            flex: 1; position: relative; background: #000; 
+            display: flex; align-items: center; justify-content: center;
         }
-        video { width: 100%; height: 100%; max-height: 100%; }
+        video { width: 100%; height: 100%; }
 
-        /* 弹幕层 */
-        #danmaku-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 80%; /* 留出底部空间 */
-            pointer-events: none; z-index: 20;
-        }
-
-        /* 顶部栏 */
-        .player-header {
-            position: absolute; top: 0; left: 0; width: 100%; height: 50px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-            z-index: 30; display: flex; justify-content: space-between; align-items: center; padding: 0 15px;
-        }
-        .close-btn { color: #fff; font-size: 20px; padding: 10px; }
-        .live-tag {
-            color: red; font-size: 12px; font-weight: bold; border: 1px solid red;
-            padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.5);
-        }
-
-        /* 底部控制栏：固定在底部，键盘弹起时由浏览器自动顶起 */
         .player-controls {
-            width: 100%; background: #1a1a1a;
-            padding: 10px; display: flex; align-items: center; gap: 10px;
-            border-top: 1px solid #333; z-index: 40;
-            padding-bottom: env(safe-area-inset-bottom); /* 适配 iPhone 底部黑条 */
+            width: 100%; background: #1a1a1a; padding: 10px;
+            display: flex; gap: 10px; align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        
         .dm-input {
             flex: 1; height: 36px; border-radius: 18px; border: none;
-            padding: 0 15px; background: #333; color: #fff; font-size: 14px;
+            padding: 0 15px; background: #333; color: #fff;
         }
         .dm-send {
             width: 36px; height: 36px; border-radius: 50%;
             background: var(--accent); color: #000;
             display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
         }
 
-        /* 呼吸灯动画 */
-        .triggering { animation: pulse 0.5s infinite; color: #fff !important; }
-        @keyframes pulse { 50% { text-shadow: 0 0 15px var(--accent); } }
-
-        /* 错误提示 */
-        #debug-toast {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8); color: #fff; padding: 15px; border-radius: 8px;
-            text-align: center; display: none; z-index: 200; font-size: 14px; max-width: 80%;
+        /* 弹幕画布 */
+        #danmaku-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
         }
+
+        /* 错误日志红框 */
+        #error-box {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(200, 0, 0, 0.9); color: white;
+            font-size: 12px; padding: 10px; z-index: 999;
+            display: none; white-space: pre-wrap;
+        }
+
+        /* Logo 动画 */
+        .triggering { color: #fff !important; text-shadow: 0 0 15px #fff; }
+        
+        /* Loading 状态 */
+        .loading-text { width: 100%; text-align: center; padding: 50px; color: #666; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo" id="logo-trigger">OSB<span style="font-size:12px;opacity:0.6">PRO</span></div>
+    <div class="logo" id="osb-logo">OSB<span style="font-size:12px;opacity:0.6">PRO</span></div>
     <div class="search-box">
         <i class="fas fa-search search-icon"></i>
         <input type="text" class="search-input" id="search-input" placeholder="搜索频道...">
@@ -214,7 +191,284 @@
 <div id="main-container">
     <div id="nav-scroll"></div>
     <div id="channel-grid">
-        <div style="grid-column:1/-1; text-align:center; padding:50px; color:#666;">
-            <i class="fas fa-circle-notch fa-spin"></i> 系统加载中...
+        <div class="loading-text">
+            <i class="fas fa-circle-notch fa-spin"></i> 系统正在连接...<br>
+            <span style="font-size:12px;opacity:0.5">(如果长时间不动，请长按Logo切换线路)</span>
         </div>
     </div>
+</div>
+
+<div id="error-box"></div>
+
+<div id="player-modal">
+    <div id="video-stage">
+        <video id="video-player" playsinline webkit-playsinline controls></video>
+        <canvas id="danmaku-layer"></canvas>
+        <div style="position:absolute; top:10px; left:10px; color:white; z-index:20" onclick="closePlayer()">
+            <i class="fas fa-chevron-down" style="font-size:24px; background:rgba(0,0,0,0.5); padding:5px; border-radius:50%"></i>
+        </div>
+    </div>
+    <div class="player-controls">
+        <input type="text" class="dm-input" id="dm-input" placeholder="发送弹幕...">
+        <div class="dm-send" onclick="sendDm()"><i class="fas fa-paper-plane"></i></div>
+    </div>
+</div>
+
+<script>
+    // ================= 0. 保命：全局错误捕获 =================
+    window.onerror = function(msg, url, line) {
+        const box = document.getElementById('error-box');
+        box.style.display = 'block';
+        box.innerHTML += `[Error] ${msg} (Line:${line})<br>`;
+        return false; // 不阻止默认行为
+    };
+
+    // ================= 1. 保命：Logo 监听 (立即执行) =================
+    // 不放在 window.onload 里，防止被其他代码阻塞
+    (function initLogo() {
+        const logo = document.getElementById('osb-logo');
+        if(!logo) return;
+        
+        let timer;
+        const CONFIG = { triggerTime: 10000 };
+        
+        const start = (e) => {
+            // e.preventDefault(); // 暂时注释，防止手机无法点击
+            logo.classList.add('triggering');
+            timer = setTimeout(() => {
+                toggleMode();
+            }, CONFIG.triggerTime);
+        };
+        const end = () => {
+            clearTimeout(timer);
+            logo.classList.remove('triggering');
+        };
+
+        logo.addEventListener('mousedown', start);
+        logo.addEventListener('touchstart', start);
+        logo.addEventListener('mouseup', end);
+        logo.addEventListener('touchend', end);
+    })();
+
+    // ================= 系统配置 =================
+    const CONFIG = {
+        safeUrl: 'https://raw.githubusercontent.com/satan-1412/live/refs/heads/main/no%20sex/TV_1(no%20sex).m3u8',
+        rootUrl: 'https://raw.githubusercontent.com/satan-1412/live/main/TV.m3u8',
+        mqttBroker: 'wss://broker.emqx.io:8084/mqtt',
+        mqttTopic: 'osb/global/dm/v1'
+    };
+
+    let app = {
+        mode: 'SAFE',
+        data: [],
+        cat: 'ALL',
+        hls: null,
+        client: null
+    };
+
+    // ================= 2. 初始化逻辑 =================
+    window.onload = () => {
+        try {
+            loadSource(CONFIG.safeUrl);
+            initMQTT(); // 就算 MQTT 挂了，也不要影响主流程
+        } catch (e) {
+            document.getElementById('error-box').style.display = 'block';
+            document.getElementById('error-box').innerText = "Init Error: " + e.message;
+        }
+    };
+
+    // ================= 3. 数据加载 =================
+    function loadSource(url) {
+        const grid = document.getElementById('channel-grid');
+        // grid.innerHTML = '<div class="loading-text">加载中...</div>'; // 不要清空，防止闪烁
+        
+        // 加时间戳，防止缓存
+        const finalUrl = url + '?t=' + Date.now();
+
+        fetch(finalUrl)
+            .then(r => {
+                if(!r.ok) throw new Error("HTTP " + r.status);
+                return r.text();
+            })
+            .then(txt => parseM3U8(txt))
+            .catch(e => {
+                document.getElementById('error-box').style.display = 'block';
+                document.getElementById('error-box').innerHTML += `Data Error: ${e.message}<br>`;
+                grid.innerHTML = `<div class="loading-text" style="color:red">加载失败，请检查网络<br>${e.message}</div>`;
+            });
+    }
+
+    function parseM3U8(txt) {
+        app.data = [];
+        const lines = txt.split('\n');
+        for(let i=0; i<lines.length; i++) {
+            const line = lines[i].trim();
+            if(line.startsWith('#EXTINF')) {
+                const info = line.split(',')[1] || '频道';
+                const logo = (line.match(/tvg-logo="([^"]+)"/) || [])[1];
+                const group = (line.match(/group-title="([^"]+)"/) || [])[1] || '其他';
+                const url = lines[i+1] ? lines[i+1].trim() : '';
+                
+                if(url && url.startsWith('http')) {
+                    app.data.push({ title: info, logo: logo, group: group, url: url });
+                }
+            }
+        }
+        renderNav();
+        renderGrid();
+    }
+
+    // ================= 4. 渲染 (Flex 布局) =================
+    function renderNav() {
+        const groups = new Set(['ALL']);
+        app.data.forEach(d => groups.add(d.group));
+        const nav = document.getElementById('nav-scroll');
+        nav.innerHTML = '';
+        groups.forEach(g => {
+            const btn = document.createElement('button');
+            btn.className = `nav-btn ${g === app.cat ? 'active' : ''}`;
+            btn.innerText = g;
+            btn.onclick = () => { app.cat = g; renderNav(); renderGrid(); };
+            nav.appendChild(btn);
+        });
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('channel-grid');
+        grid.innerHTML = '';
+        const search = document.getElementById('search-input').value.toLowerCase();
+        
+        const list = app.data.filter(d => {
+            if(app.cat !== 'ALL' && d.group !== app.cat) return false;
+            if(search && !d.title.toLowerCase().includes(search)) return false;
+            return true;
+        });
+
+        if(list.length === 0) {
+            grid.innerHTML = '<div class="loading-text">暂无频道</div>';
+            return;
+        }
+
+        list.forEach(d => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.onclick = () => openPlayer(d.url);
+            
+            let imgHtml = `<div class="card-fallback"><i class="fas fa-tv"></i></div>`;
+            if(d.logo) {
+                // onerror 自动隐藏破图
+                imgHtml += `<img src="${d.logo}" class="card-img" onerror="this.style.display='none'">`;
+            }
+
+            el.innerHTML = `
+                <div class="card-img-wrap">${imgHtml}</div>
+                <div class="card-title">${d.title}</div>
+            `;
+            grid.appendChild(el);
+        });
+    }
+
+    document.getElementById('search-input').addEventListener('input', renderGrid);
+
+    // ================= 5. 播放器 =================
+    function openPlayer(url) {
+        document.getElementById('player-modal').classList.add('active');
+        const v = document.getElementById('video-player');
+        
+        if(Hls.isSupported()) {
+            if(app.hls) app.hls.destroy();
+            app.hls = new Hls();
+            app.hls.loadSource(url);
+            app.hls.attachMedia(v);
+            app.hls.on(Hls.Events.MANIFEST_PARSED, () => v.play());
+        } else if(v.canPlayType('application/vnd.apple.mpegurl')) {
+            v.src = url;
+            v.play();
+        }
+        initCanvas(); // 启动弹幕
+    }
+
+    function closePlayer() {
+        document.getElementById('player-modal').classList.remove('active');
+        document.getElementById('video-player').pause();
+    }
+
+    // ================= 6. 弹幕 (MQTT + Canvas) =================
+    let dms = [];
+    let dmRaf;
+    const canvas = document.getElementById('danmaku-layer');
+    const ctx = canvas.getContext('2d');
+
+    function initMQTT() {
+        try {
+            app.client = mqtt.connect(CONFIG.mqttBroker);
+            app.client.on('connect', () => {
+                console.log("MQTT Connected");
+                app.client.subscribe(CONFIG.mqttTopic);
+            });
+            app.client.on('message', (topic, msg) => {
+                fireDm(msg.toString(), false);
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    function sendDm() {
+        const inp = document.getElementById('dm-input');
+        const txt = inp.value.trim();
+        if(!txt) return;
+        
+        if(app.client) app.client.publish(CONFIG.mqttTopic, txt);
+        fireDm(txt, true);
+        inp.value = '';
+    }
+
+    function initCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        ctx.font = "bold 24px Arial";
+        if(!dmRaf) loop();
+    }
+
+    function fireDm(text, isSelf) {
+        dms.push({
+            text: text,
+            x: canvas.width,
+            y: 50 + Math.random() * (canvas.height / 2),
+            speed: 2 + Math.random(),
+            color: isSelf ? '#00ff88' : '#fff'
+        });
+    }
+
+    function loop() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(let i=0; i<dms.length; i++) {
+            let d = dms[i];
+            d.x -= d.speed;
+            ctx.fillStyle = d.color;
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.strokeText(d.text, d.x, d.y);
+            ctx.fillText(d.text, d.x, d.y);
+            if(d.x < -1000) { dms.splice(i,1); i--; }
+        }
+        dmRaf = requestAnimationFrame(loop);
+    }
+
+    // ================= 7. 模式切换 =================
+    function toggleMode() {
+        const body = document.body;
+        if(app.mode === 'SAFE') {
+            app.mode = 'ROOT';
+            body.classList.add('root-mode');
+            alert("已切换：隐私模式");
+            loadSource(CONFIG.rootUrl);
+        } else {
+            app.mode = 'SAFE';
+            body.classList.remove('root-mode');
+            alert("已恢复：安全模式");
+            loadSource(CONFIG.safeUrl);
+        }
+    }
+</script>
+</body>
+</html>
