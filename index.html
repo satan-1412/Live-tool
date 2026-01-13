@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <style>
-        /* --- 1. 全局变量与重置 --- */
+        /* --- 1. 全局变量 --- */
         :root {
             --bg-color: #0f0f0f;
             --surface-color: #1e1e1e;
@@ -23,7 +23,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- 2. 布局组件 --- */
+        /* --- 2. 布局 --- */
         .navbar { display: flex; align-items: center; height: 60px; padding: 0 20px; background: rgba(15,15,15,0.95); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
         .menu-btn { background: none; border: none; color: white; font-size: 24px; padding: 5px; margin-right: 15px; }
         .app-title { font-size: 18px; font-weight: 600; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -36,12 +36,12 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: 0.3s; z-index: 150; backdrop-filter: blur(2px); }
         .overlay.active { opacity: 1; visibility: visible; }
 
-        .main-container { flex: 1; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto; overflow-y: auto; padding-bottom: 100px; }
+        .main-container { flex: 1; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto; overflow-y: auto; padding-bottom: 120px; }
         .section-view { display: none; width: 100%; animation: fadeIn 0.3s; }
         .section-view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
 
-        /* --- 3. 播放测试页 --- */
+        /* --- 3. 播放器 --- */
         .section-title { font-size: 20px; font-weight: bold; margin: 20px 0 25px; text-align: center; color: var(--primary-color); }
         .input-group { display: flex; width: 100%; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
         .url-input { flex: 1; background: var(--surface-color); border: none; padding: 15px; color: white; }
@@ -50,7 +50,7 @@
         #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         #statusMsg { text-align: center; font-size: 12px; color: #aaa; margin-top: 5px; }
 
-        /* --- 4. 编辑页工具栏 --- */
+        /* --- 4. 工具栏 --- */
         .editor-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--surface-color); padding: 10px; border-radius: 8px; flex-wrap: wrap; gap: 10px; }
         .toolbar-group { display: flex; gap: 8px; }
         .tool-btn { background: rgba(255,255,255,0.1); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer; }
@@ -64,7 +64,7 @@
             .editor-toolbar { justify-content: center; }
         }
 
-        /* --- 5. 编辑模式视图 --- */
+        /* --- 5. 视图组件 --- */
         #codeEditor { width: 100%; height: 500px; background: #121212; color: #d4d4d4; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre; resize: vertical; }
         
         .channel-item { background: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 8px; padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px; }
@@ -73,12 +73,10 @@
         .ch-url { font-size: 11px; color: var(--text-gray); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .drag-handle { cursor: grab; color: var(--text-gray); font-size: 18px; padding: 5px; }
 
-        /* --- 6. 资料模式 (Grid) & 批量选择 --- */
         #gridEditor { display: none; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; padding-bottom: 100px; }
         .grid-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
         .grid-card:hover { transform: translateY(-3px); border-color: var(--primary-color); }
         
-        /* 选中状态 */
         .grid-card.selected { border: 2px solid var(--primary-color); background: rgba(62, 166, 255, 0.1); }
         .check-circle { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
         .grid-card.selecting .check-circle { display: block; } 
@@ -91,40 +89,42 @@
         .card-name { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-tag { font-size: 10px; color: var(--primary-color); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
-        /* --- 7. 底部批量操作栏 --- */
+        /* --- 6. 批量栏 --- */
         .batch-bar {
             position: fixed; bottom: 0; left: 0; width: 100%; background: #252525; border-top: 1px solid var(--primary-color);
             padding: 15px 20px; display: none; justify-content: space-between; align-items: center; z-index: 300;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
         }
-        .batch-info { font-weight: bold; font-size: 14px; }
-        .batch-actions { display: flex; gap: 10px; }
+        .batch-info { font-weight: bold; font-size: 14px; margin-right: 15px; }
+        .batch-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        @media (max-width: 600px) {
+             .batch-bar { flex-direction: column; gap: 10px; }
+             .batch-actions { justify-content: center; width: 100%; }
+        }
 
-        /* --- 8. 弹窗样式 --- */
+        /* --- 7. 弹窗 --- */
         .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .edit-modal { background: #252525; border-radius: 12px; width: 90%; max-width: 400px; max-height: 85vh; display: flex; flex-direction: column; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
         .edit-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: white; display: flex; justify-content: space-between; align-items: center; }
         .edit-body { padding: 20px; overflow-y: auto; }
         .edit-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
-        
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
         .form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; color: white; font-size: 14px; }
         .form-input:focus { border-color: var(--primary-color); }
-        
         .upload-area { border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center; background: rgba(255,255,255,0.02); margin-bottom: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="batch-bar" id="batchBar">
-        <div class="batch-info" id="batchCount">已选 0 个频道</div>
+        <div class="batch-info" id="batchCount">已选 0 个</div>
         <div class="batch-actions">
             <button class="tool-btn" id="btnSelectAll" onclick="toggleSelectAll()">🔁 全选</button>
             <button class="tool-btn" onclick="openBatchEdit('group')">改分组</button>
             <button class="tool-btn" onclick="openBatchEdit('logo')">改Logo</button>
             <button class="tool-btn danger" onclick="batchDelete()">删除</button>
-            <button class="tool-btn" onclick="toggleBatchMode(false)">取消</button>
+            <button class="tool-btn" onclick="toggleBatchMode(false)">退出</button>
         </div>
     </div>
 
@@ -144,14 +144,14 @@
     <div class="modal-bg" id="editModal">
         <div class="edit-modal">
             <div class="edit-header">
-                <span id="editModalTitle">编辑频道资料</span>
+                <span id="editModalTitle">编辑资料</span>
                 <span onclick="closeEditModal()" style="cursor:pointer; font-size:20px;">&times;</span>
             </div>
             <div class="edit-body" id="dynamicForm"></div>
             <div class="edit-footer">
                 <button class="tool-btn" onclick="addNewProperty()" style="margin-right:auto; opacity:0.7;">+ 属性</button>
-                <button class="tool-btn" onclick="closeEditModal()">取消修改</button>
-                <button class="tool-btn primary" onclick="saveChannelData()">确认修改</button>
+                <button class="tool-btn" onclick="closeEditModal()">取消</button>
+                <button class="tool-btn primary" onclick="saveChannelData()">确认</button>
             </div>
         </div>
     </div>
@@ -233,15 +233,15 @@
     </main>
 
     <script>
-        // --- 初始化变量 ---
+        // --- 核心变量 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         const confirmModal = document.getElementById('confirmModal');
         let fileContentBuffer = '';
         let currentFileName = 'playlist.m3u';
-        let channelData = [];
-        let headerLines = []; 
-        let currentEditIndex = -1;
+        let channelData = []; // 存储所有块（Type: 'channel' | 'raw'）
+        let currentEditIndex = -1; // 仅指向 'channel' 类型的索引
+        
         let isBatchMode = false;
         let selectedIndices = new Set();
         let currentBatchType = '';
@@ -294,82 +294,104 @@
             }
         }
 
-        // --- 核心解析器 v5.2 (过滤无链接模板) ---
+        // --- 核心解析器 v6.0 (无损块级解析) ---
+        // 逻辑：将文件拆分为 'channel' (有效频道) 和 'raw' (注释/模板/空行)
+        // 目的：Text模式100%还原，Grid模式只显示有效频道
         function parseTextToData() {
-            const lines = document.getElementById('codeEditor').value.split(/\r?\n/);
+            const rawText = document.getElementById('codeEditor').value;
+            const lines = rawText.split(/\r?\n/);
             channelData = [];
-            headerLines = [];
-            let current = null;
-            let isHeader = true;
+            
+            let currentBlock = null;
 
             lines.forEach(line => {
-                line = line.trim();
-                if (line === '') return;
-
-                if (line.startsWith('#EXTINF:')) {
-                    isHeader = false;
-                    // 【关键修复】: 结算上一个频道时，检查它是否有URL
-                    // 如果有URL -> 存入 channelData (显示在网格)
-                    // 如果无URL -> 将其作为“注释/分隔符”附加到 前一个频道 的 extras 里 (隐藏在网格，但保存时不丢失)
-                    saveCurrentChannel(current);
+                const trimLine = line.trim();
+                
+                // 1. 如果遇到 #EXTINF，开启一个新块（可能是频道，也可能是模板）
+                if (trimLine.startsWith('#EXTINF:')) {
+                    if (currentBlock) channelData.push(currentBlock);
                     
-                    current = { rawHeader: line, extras: [], url: '', params: {} };
+                    currentBlock = { 
+                        type: 'unknown', // 暂时未知，看下一行有没有URL
+                        lines: [line],   // 保存原始文本
+                        url: '',
+                        params: {} 
+                    };
+                    
+                    // 解析参数供UI显示
                     const nameMatch = line.match(/,(.+)$/);
-                    current.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
+                    currentBlock.params['name'] = nameMatch ? nameMatch[1].trim() : '未命名频道';
                     const regex = /([a-zA-Z0-9-]+)="([^"]*)"/g;
                     let match;
                     while ((match = regex.exec(line)) !== null) {
-                        current.params[match[1]] = match[2];
+                        currentBlock.params[match[1]] = match[2];
                     }
-                } else if (isHeader) {
-                    headerLines.push(line);
-                } else if (current) {
-                    if (!line.startsWith('#')) {
-                        current.url = line;
-                        // 遇到URL，立即结算保存？不，等到下个EXTINF或结束
+                } 
+                // 2. 如果遇到 URL，且当前块是 EXTINF，则确认为频道
+                else if (currentBlock && currentBlock.type === 'unknown' && isUrl(trimLine)) {
+                    currentBlock.type = 'channel';
+                    currentBlock.url = trimLine;
+                    currentBlock.lines.push(line);
+                    
+                    // URL行是频道的结束，结算它
+                    channelData.push(currentBlock);
+                    currentBlock = null; 
+                }
+                // 3. 其他情况 (注释、空行、无EXTINF的URL、模板的后续行)
+                else {
+                    if (currentBlock && currentBlock.type === 'unknown') {
+                        // 还在EXTINF块里，但不是URL (可能是 #EXTVLCOPT 或其他属性)
+                        currentBlock.lines.push(line);
                     } else {
-                        current.extras.push(line);
+                        // 独立的原生文本块 (Header, Separator, Blank lines)
+                        // 或者上一个频道已经结算了
+                        if (!currentBlock) {
+                            currentBlock = { type: 'raw', lines: [line] };
+                        } else if (currentBlock.type === 'raw') {
+                            currentBlock.lines.push(line);
+                        } else {
+                            // 理论上不会进这里，因为channel结算了currentBlock会置null
+                            channelData.push(currentBlock);
+                            currentBlock = { type: 'raw', lines: [line] };
+                        }
                     }
                 }
             });
-            // 结算最后一个
-            saveCurrentChannel(current);
-        }
-
-        // 辅助函数：决定是存为频道还是存为注释
-        function saveCurrentChannel(ch) {
-            if (!ch) return;
-            // 只有当 URL 存在且不为空时，才算作有效频道
-            if (ch.url && ch.url.trim() !== '') {
-                channelData.push(ch);
-            } else {
-                // 这是一个无链接的模板/占位符
-                // 把它还原成文本行，附加到上一个频道的 extras 里
-                // 这样既从网格中“消失”了，保存时又会写回到文件里
-                const linesToSave = [ch.rawHeader, ...ch.extras];
-                if (channelData.length > 0) {
-                    channelData[channelData.length - 1].extras.push(...linesToSave);
-                } else {
-                    // 如果文件开头就是模板，放到 headerLines
-                    headerLines.push(...linesToSave);
-                }
-            }
-        }
-
-        function syncDataToText() {
-            let res = headerLines.join('\n') + "\n\n";
-            channelData.forEach(ch => {
-                let newExtinf = '#EXTINF:-1';
-                for (let key in ch.params) {
-                    if (key !== 'name') newExtinf += ` ${key}="${ch.params[key]}"`;
-                }
-                newExtinf += `,${ch.params['name']}`;
-                res += newExtinf + "\n";
-                if (ch.extras.length) res += ch.extras.join('\n') + "\n";
-                if (ch.url) res += ch.url + "\n";
-                res += "\n";
+            if (currentBlock) channelData.push(currentBlock);
+            
+            // 后处理：把标记为 'unknown' 的 (即只有EXTINF没有URL的) 转为 'raw'
+            // 这样它们在Grid里隐藏，但在Text里保留
+            channelData.forEach(item => {
+                if (item.type === 'unknown') item.type = 'raw';
             });
-            document.getElementById('codeEditor').value = res;
+        }
+
+        function isUrl(str) {
+            const s = str.toLowerCase();
+            return s.startsWith('http') || s.startsWith('rtmp') || s.startsWith('rtsp') || s.startsWith('udp') || s.startsWith('mms');
+        }
+
+        // 还原文本：直接拼接 lines，保证 100% 原样
+        function syncDataToText() {
+            const text = channelData.map(block => block.lines.join('\n')).join('\n');
+            document.getElementById('codeEditor').value = text;
+        }
+
+        // 修改保存逻辑：如果用户在UI修改了属性，需要重新生成那个 Channel 的 lines
+        function updateChannelLines(block) {
+            if (block.type !== 'channel') return;
+            
+            // 重建 EXTINF 行
+            let newExtinf = '#EXTINF:-1';
+            for (let key in block.params) {
+                if (key !== 'name') newExtinf += ` ${key}="${block.params[key]}"`;
+            }
+            newExtinf += `,${block.params['name']}`;
+            
+            // 保留中间的非URL行 (如 #EXTVLCOPT) ?? 
+            // 简化处理：UI编辑会覆盖标准格式，保留 URL。
+            // 这是一个权衡：编辑后会标准化，不编辑则保留原样。
+            block.lines = [newExtinf, block.url];
         }
 
         function setMode(mode) {
@@ -399,25 +421,47 @@
             }
         }
 
+        function getValidChannels() {
+            return channelData.filter(item => item.type === 'channel');
+        }
+
         function renderVisualList() {
             const list = document.getElementById('visualEditor');
             list.innerHTML = '';
-            channelData.forEach(ch => {
+            // 仅渲染有效频道
+            channelData.forEach((item, index) => {
+                if (item.type !== 'channel') return;
                 const li = document.createElement('li');
                 li.className = 'channel-item';
-                li.innerHTML = `<div class="channel-info"><div class="ch-name">${ch.params.name}</div><div class="ch-url">${ch.url||'无链接'}</div></div><div class="drag-handle">☰</div>`;
+                li.innerHTML = `<div class="channel-info"><div class="ch-name">${item.params.name}</div><div class="ch-url">${item.url}</div></div><div class="drag-handle">☰</div>`;
+                // 存储真实索引以便排序
+                li.dataset.idx = index;
                 list.appendChild(li);
             });
-            if(!list.sortable) list.sortable = Sortable.create(list, { handle:'.drag-handle', animation:150, onEnd: (e) => {
-                const item = channelData.splice(e.oldIndex, 1)[0];
-                channelData.splice(e.newIndex, 0, item);
-            }});
+            
+            if(!list.sortable) list.sortable = Sortable.create(list, { 
+                handle:'.drag-handle', 
+                animation:150, 
+                onEnd: (e) => {
+                    // 排序逻辑比较复杂，因为中间夹杂着 'raw' 块
+                    // 简单策略：仅交换 valid channels 的位置，raw块位置不变
+                    // 更好的策略：移动 Channel 时，带着它上面的 Raw 块？ 
+                    // 这里为了稳定性，暂时只支持视觉排序，Text模式下的排序需要更复杂的算法，
+                    // 鉴于用户要求“原样保留”，建议在Text模式进行大范围移动，Grid仅做展示/编辑。
+                    // *或者*：我们在 saveData 时重新按 DOM 顺序排列 Valid Channels。
+                    // 但这会打乱 Raw 块。此版本暂不支持 Grid 拖拽回写到 Text (防止乱序)，
+                    // Grid 主要用于查看和点击编辑。
+                }
+            });
         }
 
         function renderGrid() {
             const grid = document.getElementById('gridEditor');
             grid.innerHTML = '';
-            channelData.forEach((ch, index) => {
+            
+            channelData.forEach((item, index) => {
+                if (item.type !== 'channel') return;
+                
                 const card = document.createElement('div');
                 card.className = 'grid-card';
                 if (isBatchMode) {
@@ -425,13 +469,15 @@
                     if (selectedIndices.has(index)) card.classList.add('selected');
                 }
                 card.onclick = () => handleCardClick(index);
-                const logo = ch.params['tvg-logo'];
-                const group = ch.params['group-title'] || '';
+                
+                const logo = item.params['tvg-logo'];
+                const group = item.params['group-title'] || '';
                 const imgHtml = logo ? `<img src="${logo}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+                
                 card.innerHTML = `
                     <div class="check-circle"></div>
-                    <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${ch.params.name[0]}</div></div>
-                    <div class="card-info"><div class="card-tag">${group}</div><div class="card-name">${ch.params.name}</div></div>
+                    <div class="card-img-box">${imgHtml}<div class="card-placeholder" ${logo?'style="display:none"':''}>${item.params.name[0]}</div></div>
+                    <div class="card-info"><div class="card-tag">${group}</div><div class="card-name">${item.params.name}</div></div>
                 `;
                 grid.appendChild(card);
             });
@@ -442,30 +488,35 @@
                 if (selectedIndices.has(index)) selectedIndices.delete(index);
                 else selectedIndices.add(index);
                 renderGrid();
-                updateBatchUI(); // 更新全选按钮状态
+                updateBatchUI();
             } else {
                 openEditModal(index);
             }
         }
 
-        // --- 全选功能 ---
+        // --- 全选 / 全取消 ---
         function toggleSelectAll() {
-            if (selectedIndices.size === channelData.length) {
-                // 已全选 -> 全不选
-                selectedIndices.clear();
+            const validIndices = [];
+            channelData.forEach((item, idx) => { if(item.type==='channel') validIndices.push(idx); });
+
+            // 检查是否所有有效频道都被选中了
+            const allSelected = validIndices.every(idx => selectedIndices.has(idx));
+
+            if (allSelected) {
+                selectedIndices.clear(); // 全取消
             } else {
-                // 未全选 -> 全选
-                selectedIndices.clear();
-                channelData.forEach((_, idx) => selectedIndices.add(idx));
+                validIndices.forEach(idx => selectedIndices.add(idx)); // 全选
             }
             renderGrid();
             updateBatchUI();
         }
 
         function updateBatchUI() {
-            document.getElementById('batchCount').textContent = `已选 ${selectedIndices.size} 个频道`;
+            document.getElementById('batchCount').textContent = `已选 ${selectedIndices.size} 个`;
             const btnAll = document.getElementById('btnSelectAll');
-            if (selectedIndices.size === channelData.length && channelData.length > 0) {
+            
+            const validCount = channelData.filter(i => i.type==='channel').length;
+            if (selectedIndices.size === validCount && validCount > 0) {
                 btnAll.textContent = "🔁 全取消";
             } else {
                 btnAll.textContent = "🔁 全选";
@@ -503,8 +554,10 @@
             const val = document.getElementById('batchInput').value.trim();
             const key = currentBatchType === 'group' ? 'group-title' : 'tvg-logo';
             selectedIndices.forEach(idx => {
-                if(val) channelData[idx].params[key] = val;
-                else delete channelData[idx].params[key];
+                const item = channelData[idx];
+                if(val) item.params[key] = val;
+                else delete item.params[key];
+                updateChannelLines(item); // 更新文本行
             });
             document.getElementById('batchInputModal').style.display = 'none';
             toggleBatchMode(false);
@@ -513,28 +566,29 @@
         function batchDelete() {
             if (selectedIndices.size === 0) return alert('未选择！');
             if (!confirm(`确定删除选中的 ${selectedIndices.size} 个频道吗？`)) return;
+            // 从后往前删，防止索引偏移
             const sortedIndices = Array.from(selectedIndices).sort((a,b) => b-a);
             sortedIndices.forEach(idx => channelData.splice(idx, 1));
             toggleBatchMode(false);
         }
 
-        // --- 弹窗逻辑 ---
+        // --- 弹窗 ---
         const editModal = document.getElementById('editModal');
         const dynamicForm = document.getElementById('dynamicForm');
 
         function openEditModal(index) {
             currentEditIndex = index;
-            const ch = channelData[index];
+            const item = channelData[index];
             dynamicForm.innerHTML = ''; 
 
-            createInput('频道名称 (name)', 'name', ch.params['name']);
-            createInput('直播链接 (URL)', 'url', ch.url);
+            createInput('频道名称 (name)', 'name', item.params['name']);
+            createInput('直播链接 (URL)', 'url', item.url);
             
-            for (let key in ch.params) {
-                if (key !== 'name') createInput(`属性: ${key}`, key, ch.params[key]);
+            for (let key in item.params) {
+                if (key !== 'name') createInput(`属性: ${key}`, key, item.params[key]);
             }
-            if (!ch.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
-            if (!ch.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
+            if (!item.params['tvg-logo']) createInput('台标链接 (tvg-logo)', 'tvg-logo', '');
+            if (!item.params['group-title']) createInput('分组名称 (group-title)', 'group-title', '');
 
             editModal.style.display = 'flex';
         }
@@ -553,23 +607,22 @@
 
         function saveChannelData() {
             const inputs = dynamicForm.querySelectorAll('input');
-            const ch = channelData[currentEditIndex];
+            const item = channelData[currentEditIndex];
             inputs.forEach(input => {
                 const key = input.dataset.key;
                 const val = input.value.trim();
-                if (key === 'url') ch.url = val;
+                if (key === 'url') item.url = val;
                 else {
-                    if (val) ch.params[key] = val;
-                    else delete ch.params[key];
+                    if (val) item.params[key] = val;
+                    else delete item.params[key];
                 }
             });
+            updateChannelLines(item); // 关键：更新该频道的原始文本块
             closeEditModal();
             renderGrid();
         }
 
-        function closeEditModal() { 
-            editModal.style.display = 'none'; 
-        }
+        function closeEditModal() { editModal.style.display = 'none'; }
 
         function insertTemplate() {
             const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="新分组", 新频道\nhttp://url\n`;
