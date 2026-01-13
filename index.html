@@ -26,12 +26,25 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
         /* --- 2. 布局 --- */
-        .navbar { display: flex; align-items: center; height: 60px; padding: 0 20px; background: rgba(15,15,15,0.95); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
-        .menu-btn { background: none; border: none; color: white; font-size: 24px; padding: 5px; margin-right: 15px; cursor: pointer; }
-        .app-title { font-size: 18px; font-weight: 600; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .navbar { 
+            display: flex; align-items: center; height: 60px; padding: 0 20px; 
+            background: rgba(15,15,15,0.95); border-bottom: 1px solid var(--border-color); 
+            position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);
+            justify-content: space-between; /* 两端对齐 */
+        }
+        .menu-btn { background: none; border: none; color: white; font-size: 24px; padding: 5px; cursor: pointer; z-index: 101; }
+        
+        /* 标题居中修正 */
+        .app-title { 
+            font-size: 18px; font-weight: 600; 
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            position: absolute; left: 50%; transform: translateX(-50%); /* 绝对居中 */
+            white-space: nowrap; pointer-events: none; /* 防止遮挡点击 */
+        }
         
         /* 语言切换器 */
-        .lang-container { margin-left: auto; position: relative; }
+        .lang-container { position: relative; z-index: 101; }
         .lang-btn { background: none; border: 1px solid var(--border-color); color: white; padding: 5px 10px; border-radius: 20px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
         .lang-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary-color); }
         .lang-menu { 
@@ -169,6 +182,9 @@
              .tool-btn { padding: 6px 10px; font-size: 12px; }
              .editor-toolbar { justify-content: center; }
              .format-grid { grid-template-columns: 1fr; }
+             /* 移动端标题适配 */
+             .app-title { font-size: 16px; left: 50px; transform: none; position: static; flex:1; text-align:center;}
+             .navbar { justify-content: space-between; }
         }
     </style>
 </head>
@@ -314,7 +330,7 @@
                 <div class="tips-title" data-i18n="tips_title">📢 检测机制说明</div>
                 <span data-i18n="tips_checker_content">
                 1. <b>智能探测</b>：本工具使用“混合探测模式”。如果直接连接失败，会自动切换“隐私探测”模式。<br>
-                2. <b>⚠️ 可能有效</b>：如果显示黄色“可能有效”，说明该频道<b>服务器是通的</b>，只是被浏览器安全策略(CORS)拦截了内容。这种链接在 IPTV Pro/TiviMate 等播放器中通常<b>可以正常播放</b>。<br>
+                2. <b>⚠️ 可能有效</b>：如果显示黄色“可能有效”，说明该频道<b>服务器是通的</b>，只是被浏览器安全策略(CORS)拦截了内容。<br>
                 3. <b>❌ 无效</b>：只有当服务器彻底拒绝连接或超时，才会显示无效。
                 </span>
             </div>
@@ -577,25 +593,18 @@
                 "status_invalid": "❌ 無効",
                 "placeholder_url": "リンクを貼り付け..."
             }
-            // 其他语言可按需扩展，逻辑自动回退到英文
         };
 
-        // 默认填充其他语言为英文（简单处理）
-        ['ko', 'ru', 'es', 'pt'].forEach(lang => {
-            if(!i18nData[lang]) i18nData[lang] = i18nData['en']; // 暂用英文占位，实际可填入对应翻译
-        });
+        // 默认填充
+        ['ko', 'ru', 'es', 'pt'].forEach(lang => { if(!i18nData[lang]) i18nData[lang] = i18nData['en']; });
+        i18nData['ko'] = Object.assign({}, i18nData['en'], { "app_title": "M3U/M3U8 툴박스", "menu_tester": "📺 스트림 테스트", "btn_play": "재생", "btn_save": "저장" });
 
-        // 简单的韩语翻译
-        i18nData['ko'] = Object.assign({}, i18nData['en'], {
-            "app_title": "M3U/M3U8 툴박스", "menu_tester": "📺 스트림 테스트", "btn_play": "재생", "btn_save": "저장"
-        });
-
-        // --- 全局状态 ---
+        // --- 核心变量 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         const confirmModal = document.getElementById('confirmModal');
         
-        let currentLang = 'en'; // 默认
+        let currentLang = 'en';
         let editorData = { buffer: '', name: 'playlist.m3u', channelData: [], headerLines: [] };
         let checkerData = { channels: [] };
         let converterData = { channels: [], name: '' };
@@ -604,8 +613,9 @@
         let selectedIndices = new Set();
         let currentBatchType = '';
         let currentUploadTarget = ''; 
+        let currentMode = 'text'; // 追踪当前编辑器模式
 
-        // --- 初始化：语言检测 ---
+        // --- 初始化：语言 ---
         (function initLang() {
             const sysLang = navigator.language || navigator.userLanguage; 
             if (sysLang.startsWith('zh')) currentLang = 'zh';
@@ -615,49 +625,30 @@
             else if (sysLang.startsWith('es')) currentLang = 'es';
             else if (sysLang.startsWith('pt')) currentLang = 'pt';
             else currentLang = 'en';
-            
             updatePageLang();
         })();
 
-        function toggleLangMenu() {
-            document.getElementById('langMenu').classList.toggle('active');
-        }
-
-        function changeLang(lang) {
-            currentLang = lang;
-            updatePageLang();
-            document.getElementById('langMenu').classList.remove('active');
-        }
-
+        function toggleLangMenu() { document.getElementById('langMenu').classList.toggle('active'); }
+        function changeLang(lang) { currentLang = lang; updatePageLang(); document.getElementById('langMenu').classList.remove('active'); }
         function updatePageLang() {
-            // 更新按钮显示
             const labelMap = { 'zh':'CN', 'en':'EN', 'ja':'JP', 'ko':'KR', 'ru':'RU', 'es':'ES', 'pt':'PT' };
             document.getElementById('currentLangLabel').textContent = labelMap[currentLang] || 'EN';
-
-            // 更新所有带有 data-i18n 的元素
             const data = i18nData[currentLang] || i18nData['en'];
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (data[key]) {
-                    // 如果 key 是 tips_checker_content 这种包含 html 的
                     if (key.includes('content') || key.includes('desc')) el.innerHTML = data[key];
                     else el.textContent = data[key];
                 }
             });
-            // 更新 placeholder
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
                 const key = el.getAttribute('data-i18n-placeholder');
                 if (data[key]) el.placeholder = data[key];
             });
         }
+        function t(key) { return (i18nData[currentLang] || i18nData['en'])[key] || key; }
 
-        // 辅助函数：获取当前语言的翻译文本
-        function t(key) {
-            const data = i18nData[currentLang] || i18nData['en'];
-            return data[key] || key;
-        }
-
-        // --- 导航与文件 ---
+        // --- 导航 ---
         function toggleMenu() { sidebar.classList.toggle('active'); overlay.classList.toggle('active'); }
         function switchTab(id, btn) {
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
@@ -688,9 +679,8 @@
                 if(currentUploadTarget === 'editor') {
                     editorData.buffer = content;
                     editorData.name = file.name;
-                } else if(currentUploadTarget === 'checker') {
-                    checkerData.raw = content;
-                } else if(currentUploadTarget === 'converter') {
+                } else if(currentUploadTarget === 'checker') checkerData.raw = content;
+                else if(currentUploadTarget === 'converter') {
                     converterData.raw = content;
                     converterData.name = file.name;
                 }
@@ -705,23 +695,21 @@
             document.getElementById('fileInputEditor').value = '';
             document.getElementById('fileInputChecker').value = '';
             document.getElementById('fileInputConverter').value = '';
-
             if (!isConfirmed) return;
 
             if (currentUploadTarget === 'editor') {
                 document.getElementById('codeEditor').value = editorData.buffer;
                 document.getElementById('step-upload-editor').style.display = 'none';
                 document.getElementById('step-edit-ui').style.display = 'block';
-                parseTextToData(); 
-                setMode('text');
-            } else if (currentUploadTarget === 'checker') {
-                initChecker(checkerData.raw);
-            } else if (currentUploadTarget === 'converter') {
-                initConverter(converterData.raw);
-            }
+                // 默认进入文本模式，初始化 currentMode
+                currentMode = 'text';
+                setMode('text'); // 这里会执行 initial parse
+                parseTextToData(); // 强制解析一次以防万一
+            } else if (currentUploadTarget === 'checker') initChecker(checkerData.raw);
+            else if (currentUploadTarget === 'converter') initConverter(converterData.raw);
         }
 
-        // --- 通用解析器 (提取有效频道) ---
+        // --- 通用工具 ---
         function extractChannels(rawText) {
             const lines = rawText.split(/\r?\n/);
             const channels = [];
@@ -744,7 +732,12 @@
             return channels;
         }
 
-        // --- 转换器 ---
+        function isUrl(str) {
+            const s = str.toLowerCase();
+            return s.startsWith('http') || s.startsWith('rtmp') || s.startsWith('rtsp') || s.startsWith('udp') || s.startsWith('mms');
+        }
+
+        // --- 转换器 & 检测器 & 播放器 (保持不变) ---
         function initConverter(rawText) {
             document.getElementById('step-upload-converter').style.display = 'none';
             document.getElementById('step-convert-ui').style.display = 'block';
@@ -752,11 +745,9 @@
             document.getElementById('convertFileName').textContent = converterData.name;
             document.getElementById('convertCount').textContent = converterData.channels.length;
         }
-
         function doConvert(format) {
             const channels = converterData.channels;
-            let content = "";
-            let ext = "";
+            let content = "", ext = "";
             if (format === 'm3u' || format === 'tivimate') {
                 content = "#EXTM3U\n";
                 channels.forEach(ch => {
@@ -781,20 +772,16 @@
             a.download = converterData.name.replace(/\.[^/.]+$/, "") + "_converted" + ext;
             a.click();
         }
-
         function resetConverter() {
             document.getElementById('step-convert-ui').style.display = 'none';
             document.getElementById('step-upload-converter').style.display = 'block';
         }
-
-        // --- 检测器 ---
         function initChecker(rawText) {
             document.getElementById('step-upload-checker').style.display = 'none';
             document.getElementById('step-check-ui').style.display = 'block';
             checkerData.channels = extractChannels(rawText);
             renderCheckList();
         }
-
         function renderCheckList() {
             const container = document.getElementById('checkList');
             container.innerHTML = '';
@@ -802,25 +789,15 @@
                 const div = document.createElement('div');
                 div.className = 'check-item';
                 div.id = `check-item-${index}`;
-                div.innerHTML = `
-                    <div class="check-info">
-                        <div class="check-name">${ch.name}</div>
-                        <div class="check-url">${ch.url}</div>
-                    </div>
-                    <div class="check-status" id="status-${index}"></div>
-                    <button class="btn-test" onclick="checkOne(${index})">Test</button>
-                `;
+                div.innerHTML = `<div class="check-info"><div class="check-name">${ch.name}</div><div class="check-url">${ch.url}</div></div><div class="check-status" id="status-${index}"></div><button class="btn-test" onclick="checkOne(${index})">Test</button>`;
                 container.appendChild(div);
             });
         }
-
         async function checkOne(index) {
             const ch = checkerData.channels[index];
             const statusEl = document.getElementById(`status-${index}`);
             const btn = document.querySelector(`#check-item-${index} .btn-test`);
-            statusEl.className = 'check-status testing';
-            statusEl.textContent = '...';
-            btn.disabled = true;
+            statusEl.className = 'check-status testing'; statusEl.textContent = '...'; btn.disabled = true;
             const startTime = Date.now();
             try {
                 const controller = new AbortController();
@@ -829,8 +806,7 @@
                 clearTimeout(timeoutId);
                 if (res.ok) {
                     const ping = Date.now() - startTime;
-                    statusEl.className = 'check-status success';
-                    statusEl.textContent = `${t('status_valid')} (${ping}ms)`;
+                    statusEl.className = 'check-status success'; statusEl.textContent = `${t('status_valid')} (${ping}ms)`;
                 } else { throw new Error("HTTP " + res.status); }
             } catch (e) {
                 try {
@@ -838,27 +814,22 @@
                     const timeoutId = setTimeout(() => controller.abort(), 6000);
                     await fetch(ch.url, { method: 'GET', mode: 'no-cors', signal: controller.signal });
                     clearTimeout(timeoutId);
-                    statusEl.className = 'check-status warning';
-                    statusEl.textContent = t('status_warn');
+                    statusEl.className = 'check-status warning'; statusEl.textContent = t('status_warn');
                 } catch (err) {
-                    statusEl.className = 'check-status error';
-                    statusEl.textContent = t('status_invalid');
+                    statusEl.className = 'check-status error'; statusEl.textContent = t('status_invalid');
                 }
             }
             btn.disabled = false;
             return true; 
         }
-
         async function startCheckAll() {
             const btn = document.getElementById('btnCheckAll');
             if(btn.disabled) return;
             btn.disabled = true;
-            
             const total = checkerData.channels.length;
             let completed = 0;
             const concurrency = 5;
             const queue = [...checkerData.channels.map((_, i) => i)];
-            
             const worker = async () => {
                 while (queue.length > 0) {
                     const idx = queue.shift();
@@ -873,7 +844,6 @@
             btn.textContent = 'Done';
             btn.disabled = false;
         }
-
         function resetChecker() {
             if(confirm('Reset?')) {
                 document.getElementById('step-check-ui').style.display = 'none';
@@ -883,8 +853,6 @@
                 document.getElementById('btnCheckAll').textContent = t('btn_start_check');
             }
         }
-
-        // --- 播放器 ---
         document.getElementById('playBtn').addEventListener('click', () => {
             const url = document.getElementById('urlInput').value.trim();
             const v = document.getElementById('video');
@@ -897,7 +865,9 @@
             } else if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src=url; v.play(); }
         });
 
-        // --- 编辑器 ---
+        // ==========================================
+        //      模块 C: 编辑器核心 (无损同步修复)
+        // ==========================================
         function parseTextToData() {
             const rawText = document.getElementById('codeEditor').value;
             const lines = rawText.split(/\r?\n/);
@@ -929,11 +899,6 @@
             editorData.channelData.forEach(item => { if (item.type === 'unknown') item.type = 'raw'; });
         }
 
-        function isUrl(str) {
-            const s = str.toLowerCase();
-            return s.startsWith('http') || s.startsWith('rtmp') || s.startsWith('rtsp') || s.startsWith('udp') || s.startsWith('mms');
-        }
-
         function syncDataToText() {
             const text = editorData.channelData.map(block => block.lines.join('\n')).join('\n');
             document.getElementById('codeEditor').value = text;
@@ -947,13 +912,26 @@
             block.lines = [newExtinf, block.url];
         }
 
+        // --- 核心修复：模式切换 ---
         function setMode(mode) {
+            if (mode === currentMode) return;
+
+            // 1. 关闭旧模式功能
             if(isBatchMode) toggleBatchMode(false);
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            if(mode==='text') document.getElementById('btnModeText').classList.add('active');
-            if(mode==='visual') document.getElementById('btnModeVisual').classList.add('active');
-            if(mode==='grid') document.getElementById('btnModeGrid').classList.add('active');
-            
+
+            // 2. 核心同步逻辑 (Fix Data Loss)
+            // 如果从 Text 切走 -> 必须 Parse
+            if (currentMode === 'text') {
+                parseTextToData();
+            } 
+            // 如果切到 Text -> 必须 Sync
+            else if (mode === 'text') {
+                syncDataToText();
+            }
+            // 如果是 Visual <-> Grid 互切 -> 什么都不做，直接共享内存数据，防止丢失！
+
+            // 3. UI 切换
             document.getElementById('codeEditor').style.display = 'none';
             document.getElementById('visualEditor').style.display = 'none';
             document.getElementById('gridEditor').style.display = 'none';
@@ -963,15 +941,19 @@
             if(mode === 'text') {
                 document.getElementById('codeEditor').style.display = 'block';
                 document.getElementById('btnAddTemplate').style.display = 'flex';
-                syncDataToText();
+                document.getElementById('btnModeText').classList.add('active');
             } else if (mode === 'visual') {
                 document.getElementById('visualEditor').style.display = 'block';
-                parseTextToData(); renderVisualList();
+                renderVisualList();
+                document.getElementById('btnModeVisual').classList.add('active');
             } else if (mode === 'grid') {
                 document.getElementById('gridEditor').style.display = 'grid';
                 document.getElementById('btnBatch').style.display = 'flex';
-                parseTextToData(); renderGrid();
+                renderGrid();
+                document.getElementById('btnModeGrid').classList.add('active');
             }
+
+            currentMode = mode; // 更新状态
         }
 
         function renderVisualList() {
@@ -1126,14 +1108,18 @@
         function closeEditModal() { editModal.style.display = 'none'; }
 
         function insertTemplate() {
-            const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="Group", Channel\nhttp://url\n`;
+            const tpl = `\n#EXTINF:-1 tvg-logo="" group-title="new", New Channel\nhttp://url\n`;
             const editor = document.getElementById('codeEditor');
             const start = editor.selectionStart;
             editor.value = editor.value.slice(0, start) + tpl + editor.value.slice(editor.selectionEnd);
+            // 文本改变了，同步到数据
+            parseTextToData();
         }
 
         function saveAndDownload() {
-            syncDataToText();
+            // 保存前先确保 Textarea 是最新的
+            if (currentMode !== 'text') syncDataToText();
+            
             const a = document.createElement("a");
             a.href = URL.createObjectURL(new Blob([document.getElementById('codeEditor').value], {type: "text/plain"}));
             a.download = "Edited_" + editorData.name;
