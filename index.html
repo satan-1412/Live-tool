@@ -3,240 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LiveStream Pro | M3U8 播放工具</title>
+    <title>M3U/M3U8在线工具箱</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
     <style>
-        /* --- 全局重置与变量 --- */
+        /* --- 1. 全局样式变量 --- */
         :root {
-            --bg-color: #0f0f0f;       /* 极深灰背景 */
-            --surface-color: #1e1e1e;  /* 组件背景 */
-            --primary-color: #3ea6ff;  /* 科技蓝强调色 */
-            --text-color: #ffffff;     /* 主要文字 */
-            --text-gray: #aaaaaa;      /* 次要文字 */
-            --sidebar-width: 280px;    /* 侧边栏宽度 */
+            --bg-color: #0f0f0f;
+            --surface-color: #1e1e1e;
+            --surface-hover: #2a2a2a;
+            --primary-color: #3ea6ff;
+            --accent-color: #a54aff;
+            --text-color: #ffffff;
+            --text-gray: #aaaaaa;
+            --sidebar-width: 280px;
+            --border-color: rgba(255, 255, 255, 0.1);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            overflow-x: hidden;
             height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
-        /* --- 顶部导航栏 --- */
+        /* --- 2. 顶部导航 --- */
         .navbar {
             display: flex;
             align-items: center;
             height: 60px;
             padding: 0 20px;
             background-color: rgba(15, 15, 15, 0.95);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border-color);
             position: sticky;
             top: 0;
             z-index: 100;
             backdrop-filter: blur(10px);
         }
 
-        .menu-btn {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px;
-            margin-right: 15px;
-        }
-
+        .menu-btn { background: none; border: none; color: var(--text-color); font-size: 24px; cursor: pointer; padding: 5px; margin-right: 15px; }
         .app-title {
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            background: linear-gradient(90deg, #3ea6ff, #a54aff); /* 渐变色标题 */
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 18px; font-weight: 600; letter-spacing: 0.5px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        /* --- 侧边栏 (抽屉) --- */
+        /* --- 3. 侧边栏 --- */
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: var(--sidebar-width);
+            position: fixed; top: 0; left: 0; height: 100%; width: var(--sidebar-width);
             background-color: var(--surface-color);
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 200;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
-            padding-top: 60px; /* 留出顶部空间 */
+            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 200; box-shadow: 4px 0 15px rgba(0,0,0,0.5); padding-top: 60px;
+        }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar-header { position: absolute; top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; padding-left: 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-gray); }
+        .menu-category { padding: 15px 20px 5px; color: var(--text-gray); font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .menu-item { display: flex; align-items: center; padding: 12px 20px; color: var(--text-color); text-decoration: none; transition: background 0.2s; border-left: 3px solid transparent; cursor: pointer; }
+        .menu-item:hover { background-color: var(--border-color); }
+        .menu-item.active { border-left-color: var(--primary-color); color: var(--primary-color); background-color: rgba(255,255,255,0.05); }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: 0.3s; z-index: 150; backdrop-filter: blur(2px); }
+        .overlay.active { opacity: 1; visibility: visible; }
+
+        /* --- 4. 主内容布局 --- */
+        .main-container { flex: 1; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto; overflow-y: auto; }
+        .section-view { display: none; width: 100%; animation: fadeIn 0.3s ease; }
+        .section-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 5. 工具一：播放测试 --- */
+        .section-title { font-size: 20px; font-weight: bold; margin-bottom: 25px; text-align: center; color: var(--primary-color); margin-top: 20px;}
+        .input-group { display: flex; width: 100%; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden; }
+        .url-input { flex: 1; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none; padding: 15px; color: white; font-size: 14px; }
+        .play-btn { background-color: var(--primary-color); color: #000; border: none; padding: 0 25px; font-weight: bold; cursor: pointer; }
+        .player-wrapper { width: 100%; background-color: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; padding-top: 56.25%; }
+        #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .status-msg { margin-top: 15px; color: var(--text-gray); font-size: 12px; text-align: center; }
+
+        /* --- 6. 工具二：在线编辑 --- */
+        .upload-area {
+            border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center;
+            background-color: rgba(255,255,255,0.02); transition: 0.3s; cursor: pointer; margin-bottom: 20px;
+        }
+        .upload-area:hover { border-color: var(--primary-color); background-color: rgba(62, 166, 255, 0.05); }
+        .hidden-input { display: none; }
+        .btn-upload { background: var(--primary-color); color: #000; padding: 10px 25px; border-radius: 20px; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; }
+        
+        /* 编辑器工具栏 */
+        .editor-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--surface-color); padding: 10px; border-radius: 8px; }
+        .toolbar-group { display: flex; gap: 10px; }
+        .tool-btn { 
+            background: rgba(255,255,255,0.1); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; transition: 0.2s;
+        }
+        .tool-btn:hover { background: rgba(255,255,255,0.2); }
+        .tool-btn.primary { background: var(--primary-color); color: #000; font-weight: bold; }
+        .tool-btn.active { background: var(--primary-color); color: #000; }
+
+        /* 文本模式 */
+        #codeEditor {
+            width: 100%; height: 500px; background-color: #121212; color: #d4d4d4; 
+            border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; 
+            font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.5; resize: vertical; white-space: pre;
         }
 
-        .sidebar.active {
-            transform: translateX(0);
+        /* 列表模式 (长条频道) */
+        #visualEditor { list-style: none; min-height: 500px; padding-bottom: 50px; }
+        .channel-item {
+            background-color: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 8px;
+            padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-
-        .sidebar-header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            padding-left: 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-weight: bold;
-            color: var(--text-gray);
-        }
-
-        .menu-category {
-            padding: 15px 20px;
-            color: var(--text-gray);
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: var(--text-color);
-            text-decoration: none;
-            transition: background 0.2s;
-            border-left: 3px solid transparent;
-        }
-
-        .menu-item:hover, .menu-item.active {
-            background-color: rgba(255,255,255,0.05);
-        }
-
-        .menu-item.active {
-            border-left-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        /* 遮罩层 */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            opacity: 0;
-            visibility: hidden;
-            transition: 0.3s;
-            z-index: 150;
-            backdrop-filter: blur(2px);
-        }
-
-        .overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* --- 主内容区域 --- */
-        .main-container {
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            max-width: 1000px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* 输入框区域 (绿色框参考) */
-        .input-group {
-            display: flex;
-            width: 100%;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .url-input {
-            flex: 1;
-            background-color: var(--surface-color);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-right: none;
-            padding: 15px;
-            color: white;
-            font-size: 14px;
-            border-radius: 8px 0 0 8px;
-            transition: border-color 0.3s;
-        }
-
-        .url-input:focus {
-            border-color: var(--primary-color);
-        }
-
-        .play-btn {
-            background-color: var(--primary-color);
-            color: #000;
-            border: none;
-            padding: 0 25px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 0 8px 8px 0;
-            transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .play-btn:hover {
-            background-color: #2c93ea;
-        }
-
-        .play-btn svg {
-            width: 20px;
-            height: 20px;
-            fill: #000;
-        }
-
-        /* 播放器容器 (红色框参考) */
-        .player-wrapper {
-            width: 100%;
-            background-color: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            /* 16:9 比例容器 */
-            position: relative;
-            padding-top: 56.25%; 
-        }
-
-        #video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* 状态提示 */
-        .status-msg {
-            margin-top: 15px;
-            color: var(--text-gray);
-            font-size: 12px;
-            text-align: center;
-        }
-
+        .channel-item.sortable-ghost { opacity: 0.4; background: var(--primary-color); } /* 拖拽时的虚影 */
+        .channel-item.sortable-drag { background: var(--surface-hover); opacity: 1; transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        
+        .drag-handle { cursor: grab; color: var(--text-gray); font-size: 18px; padding: 5px; }
+        .channel-info { flex: 1; overflow: hidden; }
+        .ch-group { font-size: 11px; color: var(--primary-color); background: rgba(62, 166, 255, 0.1); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
+        .ch-name { font-weight: bold; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ch-url { font-size: 11px; color: var(--text-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
     </style>
 </head>
 <body>
@@ -244,104 +134,303 @@
     <div class="overlay" id="overlay"></div>
 
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">工具箱菜单</div>
+        <div class="sidebar-header">M3U/M3U8工具箱</div>
         
-        <div class="menu-category">媒体工具</div>
-        <a href="#" class="menu-item active">
-            <span>📺 M3U8 播放器</span>
-        </a>
-        <a href="#" class="menu-item">
-            <span>📡 更多功能开发中...</span>
-        </a>
+        <div class="menu-category">常用功能</div>
+        <div class="menu-item active" onclick="switchTab('tester', this)">
+            <span>📺 在线链接测试</span>
+        </div>
+        <div class="menu-item" onclick="switchTab('editor', this)">
+            <span>📝 直播源在线编辑</span>
+        </div>
     </aside>
 
     <nav class="navbar">
-        <button class="menu-btn" id="menuBtn">
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <button class="menu-btn" onclick="toggleMenu()">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
-        <div class="app-title">SATAN TOOLBOX</div>
+        <div class="app-title">M3U/M3U8在线工具箱</div>
     </nav>
 
     <main class="main-container">
-        
-        <div class="input-group">
-            <input type="text" class="url-input" id="urlInput" placeholder="在此粘贴 .m3u8 链接..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
-            <button class="play-btn" id="playBtn">
-                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </button>
+
+        <div id="section-tester" class="section-view active">
+            <div class="section-title">M3U/M3U8 链接在线测试</div>
+
+            <div class="input-group">
+                <input type="text" class="url-input" id="urlInput" placeholder="在此粘贴 .m3u8 链接..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
+                <button class="play-btn" id="playBtn">播放</button>
+            </div>
+
+            <div class="player-wrapper">
+                <video id="video" controls poster="https://via.placeholder.com/1280x720/0f0f0f/333333?text=Ready"></video>
+            </div>
+            <div class="status-msg" id="statusMsg">准备就绪，点击播放按钮开始测试</div>
         </div>
 
-        <div class="player-wrapper">
-            <video id="video" controls poster="https://via.placeholder.com/1280x720/000000/3ea6ff?text=Ready+To+Play"></video>
-        </div>
+        <div id="section-editor" class="section-view">
+            <div class="section-title">直播源文件编辑</div>
 
-        <div class="status-msg" id="statusMsg">准备就绪，点击播放按钮开始测试</div>
+            <div id="step-upload" style="display: block;">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" class="hidden-input" accept=".m3u,.m3u8,.txt">
+                    <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
+                    <p>点击选择或拖拽文件到这里</p>
+                    <p style="color:var(--text-gray); font-size:12px; margin-top:5px;">支持 .m3u, .m3u8 格式</p>
+                    <button class="btn-upload">选择文件</button>
+                </div>
+            </div>
+
+            <div id="step-edit" style="display: none;">
+                <div class="editor-toolbar">
+                    <div class="toolbar-group">
+                        <button class="tool-btn active" id="btnModeText" onclick="setMode('text')">📄 文本模式</button>
+                        <button class="tool-btn" id="btnModeVisual" onclick="setMode('visual')">☰ 列表模式</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button class="tool-btn" id="btnAddTemplate" onclick="insertTemplate()" title="插入标准频道模板">➕ 添加频道</button>
+                        <button class="tool-btn primary" onclick="saveAndDownload()">💾 保存下载</button>
+                    </div>
+                </div>
+
+                <textarea id="codeEditor" spellcheck="false" placeholder="#EXTM3U..."></textarea>
+
+                <ul id="visualEditor" style="display:none;">
+                    </ul>
+                
+                <div style="text-align:center; margin-top:10px;">
+                    <button onclick="resetEditor()" style="background:none; border:none; color:var(--text-gray); cursor:pointer; font-size:12px;">❌ 放弃修改并重新上传</button>
+                </div>
+            </div>
+        </div>
 
     </main>
 
     <script>
-        // --- UI 逻辑 ---
-        const menuBtn = document.getElementById('menuBtn');
+        // --- 1. 全局 UI 逻辑 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
-        const urlInput = document.getElementById('urlInput');
-        const playBtn = document.getElementById('playBtn');
-        const video = document.getElementById('video');
-        const statusMsg = document.getElementById('statusMsg');
+        let currentFileName = "playlist.m3u"; // 默认保存文件名
 
-        // 打开/关闭 侧边栏
         function toggleMenu() {
             sidebar.classList.toggle('active');
             overlay.classList.toggle('active');
         }
-
-        menuBtn.addEventListener('click', toggleMenu);
         overlay.addEventListener('click', toggleMenu);
 
-        // --- 播放器逻辑 (Hls.js) ---
-        function loadVideo() {
-            const url = urlInput.value.trim();
-            if (!url) {
-                statusMsg.textContent = "⚠️ 请先输入链接";
-                return;
-            }
+        function switchTab(tabId, btnElement) {
+            // 切换菜单高亮
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            btnElement.classList.add('active');
+            
+            // 切换页面显示
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            document.getElementById('section-' + tabId).classList.add('active');
+            
+            toggleMenu(); // 选完自动收起菜单
+        }
 
-            statusMsg.textContent = "⏳ 正在加载流媒体...";
-
+        // --- 2. 播放器逻辑 ---
+        const video = document.getElementById('video');
+        document.getElementById('playBtn').addEventListener('click', () => {
+            const url = document.getElementById('urlInput').value.trim();
+            const msg = document.getElementById('statusMsg');
+            if(!url) return;
+            
+            msg.textContent = "⏳ 加载中...";
             if (Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(url);
                 hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play();
-                    statusMsg.textContent = "✅ 正在播放: " + url;
-                });
-                hls.on(Hls.Events.ERROR, function (event, data) {
-                    if (data.fatal) {
-                       statusMsg.textContent = "❌ 加载失败: 无法连接到源";
-                    }
-                });
-            }
-            // 兼容 Safari (Safari 原生支持 m3u8)
-            else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play(); msg.textContent = "✅ 正在播放"; });
+                hls.on(Hls.Events.ERROR, () => msg.textContent = "❌ 加载失败，请检查链接");
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = url;
-                video.addEventListener('loadedmetadata', function() {
-                    video.play();
-                    statusMsg.textContent = "✅ 正在播放 (Safari原生模式)";
-                });
-            } else {
-                statusMsg.textContent = "❌ 你的浏览器不支持 HLS 播放";
+                video.addEventListener('loadedmetadata', () => { video.play(); msg.textContent = "✅ Safari 原生播放"; });
+            }
+        });
+
+        // --- 3. 编辑器逻辑 ---
+        const fileInput = document.getElementById('fileInput');
+        const editorText = document.getElementById('codeEditor');
+        const editorVisual = document.getElementById('visualEditor');
+        let sortableInstance = null;
+
+        // A. 文件读取
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            currentFileName = file.name; // 记住原文件名
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                if(confirm("文件读取成功！是否进入编辑模式？")) {
+                    editorText.value = content;
+                    document.getElementById('step-upload').style.display = 'none';
+                    document.getElementById('step-edit').style.display = 'block';
+                    // 默认先进入文本模式
+                    setMode('text');
+                } else {
+                    fileInput.value = ''; // 重置
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function resetEditor() {
+            if(confirm("确定放弃修改吗？")) {
+                document.getElementById('step-edit').style.display = 'none';
+                document.getElementById('step-upload').style.display = 'block';
+                fileInput.value = '';
+                editorText.value = '';
+                editorVisual.innerHTML = '';
             }
         }
 
-        playBtn.addEventListener('click', loadVideo);
-        
-        // 允许回车键触发播放
-        urlInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loadVideo();
+        // B. 模式切换
+        function setMode(mode) {
+            const btnText = document.getElementById('btnModeText');
+            const btnVisual = document.getElementById('btnModeVisual');
+            const btnAdd = document.getElementById('btnAddTemplate');
+
+            if (mode === 'text') {
+                // 切换到文本模式
+                btnText.classList.add('active');
+                btnVisual.classList.remove('active');
+                editorText.style.display = 'block';
+                editorVisual.style.display = 'none';
+                btnAdd.style.display = 'flex'; // 显示加号
+                
+                // 如果是从可视化切回来的，需要把列表重新转回文本
+                if(editorVisual.children.length > 0) {
+                    syncVisualToText();
+                }
+
+            } else {
+                // 切换到列表模式
+                btnText.classList.remove('active');
+                btnVisual.classList.add('active');
+                editorText.style.display = 'none';
+                editorVisual.style.display = 'block';
+                btnAdd.style.display = 'none'; // 隐藏加号
+                
+                // 解析文本生成列表
+                parseTextToVisual();
+                
+                // 初始化拖拽插件
+                if(!sortableInstance) {
+                    sortableInstance = Sortable.create(editorVisual, {
+                        animation: 150,
+                        handle: '.drag-handle', // 只能拖把手
+                        ghostClass: 'sortable-ghost',
+                        dragClass: 'sortable-drag'
+                    });
+                }
             }
-        });
+        }
+
+        // C. 解析器：文本 -> 可视化 DOM
+        function parseTextToVisual() {
+            const raw = editorText.value.trim();
+            const lines = raw.split('\n');
+            const items = [];
+            let currentItem = null;
+
+            // 简单 M3U 解析逻辑
+            lines.forEach(line => {
+                line = line.trim();
+                if(!line) return;
+                
+                if (line.startsWith('#EXTINF:')) {
+                    // 开始新频道
+                    if(currentItem) items.push(currentItem); // 保存上一个
+                    
+                    currentItem = { header: line, url: '' };
+                    
+                    // 尝试提取信息用于展示
+                    // 格式: #EXTINF:-1 tvg-logo="x" group-title="y", 名字
+                    const nameMatch = line.match(/,(.+)$/);
+                    const groupMatch = line.match(/group-title="([^"]*)"/);
+                    
+                    currentItem.name = nameMatch ? nameMatch[1] : '未知频道';
+                    currentItem.group = groupMatch ? groupMatch[1] : '默认分组';
+                } else if (line.startsWith('#')) {
+                    // 其他标签忽略或当作上一个频道的补充（这里简化处理，只处理EXTINF）
+                } else {
+                    // 这是一个URL
+                    if(currentItem) {
+                        currentItem.url = line;
+                        items.push(currentItem); // 完成一个频道
+                        currentItem = null;
+                    }
+                }
+            });
+
+            // 生成 DOM
+            editorVisual.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'channel-item';
+                // 存储原始数据在 dataset 或者隐藏属性里，这里为了简单直接存 header 和 url
+                li.dataset.header = item.header;
+                li.dataset.url = item.url;
+                
+                li.innerHTML = `
+                    <div class="channel-info">
+                        <span class="ch-group">${item.group}</span>
+                        <div class="ch-name">${item.name}</div>
+                        <div class="ch-url">${item.url}</div>
+                    </div>
+                    <div class="drag-handle">☰</div>
+                `;
+                editorVisual.appendChild(li);
+            });
+        }
+
+        // D. 生成器：可视化 DOM -> 文本
+        function syncVisualToText() {
+            let result = "#EXTM3U\n";
+            const lis = editorVisual.querySelectorAll('li');
+            lis.forEach(li => {
+                result += li.dataset.header + "\n";
+                result += li.dataset.url + "\n";
+            });
+            editorText.value = result;
+        }
+
+        // E. 工具：插入模板
+        function insertTemplate() {
+            const template = `\n#EXTINF:-1 tvg-logo="https://via.placeholder.com/150" group-title="新分组", 新频道名称\nhttp://domain.com/stream.m3u8`;
+            
+            const start = editorText.selectionStart;
+            const end = editorText.selectionEnd;
+            const text = editorText.value;
+            
+            // 在光标处插入
+            editorText.value = text.substring(0, start) + template + text.substring(end);
+            
+            // 光标移到最后
+            editorText.focus();
+            editorText.selectionStart = editorText.selectionEnd = start + template.length;
+        }
+
+        // F. 保存下载
+        function saveAndDownload() {
+            // 如果在可视模式，先同步回文本
+            if(document.getElementById('visualEditor').style.display !== 'none') {
+                syncVisualToText();
+            }
+            
+            const content = editorText.value;
+            const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "Edited_" + currentFileName; // 自动加前缀
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
     </script>
 </body>
 </html>
