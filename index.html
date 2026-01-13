@@ -2,443 +2,346 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>OSB PLAYER | V7</title>
-    
-    <meta name="referrer" content="no-referrer">
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-    
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LiveStream Pro | M3U8 播放工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        /* ================== V7.0 视觉修复 ================== */
+        /* --- 全局重置与变量 --- */
         :root {
-            --bg: #121212;
-            --card: #252525;
-            --primary: #00ff88;
-            --text: #eee;
-            --dim: #888;
-        }
-        body.root-mode { --bg: #200510; --card: #351020; --primary: #ff0055; }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-
-        /* --- 1. 大厅 (Lobby) --- */
-        #lobby-view { 
-            flex: 1; display: flex; flex-direction: column; 
-            transition: transform 0.3s ease; z-index: 10;
+            --bg-color: #0f0f0f;       /* 极深灰背景 */
+            --surface-color: #1e1e1e;  /* 组件背景 */
+            --primary-color: #3ea6ff;  /* 科技蓝强调色 */
+            --text-color: #ffffff;     /* 主要文字 */
+            --text-gray: #aaaaaa;      /* 次要文字 */
+            --sidebar-width: 280px;    /* 侧边栏宽度 */
         }
 
-        /* 顶部栏 */
-        .header { 
-            padding: 12px 16px; background: rgba(30,30,30,0.95); 
-            display: flex; align-items: center; gap: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .logo { font-size: 20px; font-weight: 900; color: var(--primary); letter-spacing: -1px; }
-        .logo.triggering { color: #fff; text-shadow: 0 0 10px var(--primary); }
-        
-        .search-wrap { flex: 1; position: relative; }
-        .search-input { 
-            width: 100%; background: #333; border: none; border-radius: 8px; 
-            padding: 8px 35px 8px 10px; color: #fff; font-size: 14px;
-        }
-        .search-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #666; }
-
-        /* 分类标签 */
-        .nav-tabs { 
-            padding: 10px 16px; display: flex; gap: 10px; overflow-x: auto; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); scrollbar-width: none;
-        }
-        .tab { 
-            padding: 6px 14px; background: rgba(255,255,255,0.08); 
-            border-radius: 20px; font-size: 13px; color: #bbb; white-space: nowrap; 
-        }
-        .tab.active { background: var(--primary); color: #000; font-weight: bold; }
-
-        /* 宫格修复：图片不再有黑条 */
-        .grid { 
-            flex: 1; padding: 16px; overflow-y: auto; 
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; 
-            align-content: start;
-        }
-        @media(min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
-
-        .card { background: var(--card); border-radius: 8px; overflow: hidden; position: relative; }
-        .card-img-wrap { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
-        .card-img { width: 100%; height: 100%; object-fit: cover; } /* 关键：cover 填满 */
-        .card-fallback { 
-            position: absolute; top:0; left:0; width:100%; height:100%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 24px; color: #333; 
-        }
-        .card-title { 
-            padding: 10px; font-size: 13px; text-align: center; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* --- 2. 播放器 (Player) --- */
-        #player-view {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 20;
-            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-            display: flex; flex-direction: column;
-        }
-        body.in-player #player-view { transform: translateX(0); }
-
-        /* 上半部分：视频 (固定高度) */
-        .video-stage {
-            width: 100%; height: 240px; background: #000; position: relative; flex-shrink: 0;
-        }
-        /* 横屏或全屏时铺满 */
-        @media (orientation: landscape) { .video-stage { height: 100vh; } }
-        .video-stage.fullscreen { position: fixed; height: 100%; z-index: 100; }
-
-        video { width: 100%; height: 100%; }
-        /* 弹幕画布 */
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-
-        /* 顶部浮层 */
-        .p-head {
-            position: absolute; top: 0; left: 0; width: 100%; padding: 10px;
-            background: linear-gradient(rgba(0,0,0,0.8), transparent);
-            display: flex; justify-content: space-between; align-items: center;
-            pointer-events: none; z-index: 10;
-        }
-        .btn-back { pointer-events: auto; font-size: 22px; color: #fff; padding: 5px; filter: drop-shadow(0 0 3px #000); }
-        .live-tag { 
-            background: #f00; color: #fff; font-size: 10px; padding: 2px 6px; 
-            border-radius: 4px; font-weight: bold; display: none; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* 下半部分：详情 (自适应) */
-        .p-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid #333; }
-        
-        .ch-info { padding: 12px 16px; background: var(--card); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .ch-title { font-size: 16px; font-weight: bold; margin: 0; }
-        .ch-sub { font-size: 12px; color: var(--dim); margin-top: 4px; }
-
-        .playlist { flex: 1; overflow-y: auto; padding: 10px 0; }
-        .play-item { 
-            padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
-        }
-        .play-item.active { color: var(--primary); background: rgba(255,255,255,0.05); }
-        .play-item.active i { display: block; }
-        .play-item i { display: none; }
-
-        /* 底部输入框 (防遮挡核心设计) */
-        .dm-bar {
-            padding: 10px 16px; background: #1a1a1a; border-top: 1px solid #333;
-            display: flex; gap: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom));
-        }
-        .dm-input {
-            flex: 1; height: 36px; background: #333; border: none; border-radius: 18px;
-            padding: 0 15px; color: #fff; font-size: 14px;
-        }
-        .dm-send {
-            width: 36px; height: 36px; background: var(--primary); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; color: #000;
+        /* --- 顶部导航栏 --- */
+        .navbar {
+            display: flex;
+            align-items: center;
+            height: 60px;
+            padding: 0 20px;
+            background-color: rgba(15, 15, 15, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
         }
 
-        /* 键盘弹起时，隐藏列表，只留视频和输入框 */
-        @media (max-height: 500px) {
-            .p-body { justify-content: flex-end; }
-            .playlist, .ch-info { display: none; }
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            margin-right: 15px;
         }
 
-        /* 错误提示 */
-        #toast { 
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 6px; 
-            color: #fff; font-size: 14px; display: none; z-index: 999; text-align: center;
+        .app-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #3ea6ff, #a54aff); /* 渐变色标题 */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
+
+        /* --- 侧边栏 (抽屉) --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: var(--sidebar-width);
+            background-color: var(--surface-color);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 200;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+            padding-top: 60px; /* 留出顶部空间 */
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-weight: bold;
+            color: var(--text-gray);
+        }
+
+        .menu-category {
+            padding: 15px 20px;
+            color: var(--text-gray);
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .menu-item.active {
+            border-left-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* 遮罩层 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.3s;
+            z-index: 150;
+            backdrop-filter: blur(2px);
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* --- 主内容区域 --- */
+        .main-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* 输入框区域 (绿色框参考) */
+        .input-group {
+            display: flex;
+            width: 100%;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .url-input {
+            flex: 1;
+            background-color: var(--surface-color);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-right: none;
+            padding: 15px;
+            color: white;
+            font-size: 14px;
+            border-radius: 8px 0 0 8px;
+            transition: border-color 0.3s;
+        }
+
+        .url-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .play-btn {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 0 25px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 0 8px 8px 0;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .play-btn:hover {
+            background-color: #2c93ea;
+        }
+
+        .play-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #000;
+        }
+
+        /* 播放器容器 (红色框参考) */
+        .player-wrapper {
+            width: 100%;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            /* 16:9 比例容器 */
+            position: relative;
+            padding-top: 56.25%; 
+        }
+
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 状态提示 */
+        .status-msg {
+            margin-top: 15px;
+            color: var(--text-gray);
+            font-size: 12px;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body>
 
-<div id="lobby-view">
-    <div class="header">
-        <div class="logo" id="logo-trigger">OSB<span style="font-size:12px;opacity:0.6">PRO</span></div>
-        <div class="search-wrap">
-            <input type="text" class="search-input" id="search" placeholder="搜索频道...">
-            <i class="fas fa-search search-icon"></i>
-        </div>
-    </div>
-    <div class="nav-tabs" id="tabs"></div>
-    <div class="grid" id="grid">
-        <div style="grid-column:1/-1;text-align:center;padding:50px;color:#666;">
-            <i class="fas fa-spinner fa-spin"></i> 连接卫星信号...
-        </div>
-    </div>
-</div>
+    <div class="overlay" id="overlay"></div>
 
-<div id="player-view">
-    <div class="video-stage" id="stage">
-        <video id="video" playsinline webkit-playsinline controls></video>
-        <canvas id="canvas"></canvas>
-        <div class="p-head">
-            <div class="btn-back" onclick="exitPlayer()"><i class="fas fa-chevron-left"></i></div>
-            <div class="live-tag" id="live-tag">LIVE</div>
-            <div style="width:24px"></div> </div>
-    </div>
-
-    <div class="p-body">
-        <div class="ch-info">
-            <h1 class="ch-title" id="p-title">--</h1>
-            <div class="ch-sub" id="p-sub">分类: --</div>
-        </div>
-        <div class="playlist" id="playlist"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">工具箱菜单</div>
         
-        <div class="dm-bar">
-            <input type="text" class="dm-input" id="dm-input" placeholder="全网弹幕...">
-            <div class="dm-send" onclick="sendDm()"><i class="fas fa-paper-plane"></i></div>
-        </div>
-    </div>
-</div>
+        <div class="menu-category">媒体工具</div>
+        <a href="#" class="menu-item active">
+            <span>📺 M3U8 播放器</span>
+        </a>
+        <a href="#" class="menu-item">
+            <span>📡 更多功能开发中...</span>
+        </a>
+    </aside>
 
-<div id="toast"></div>
+    <nav class="navbar">
+        <button class="menu-btn" id="menuBtn">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="app-title">SATAN TOOLBOX</div>
+    </nav>
 
-<script>
-    // ================= 系统核心配置 =================
-    const CONFIG = {
-        safeUrl: 'https://raw.githubusercontent.com/satan-1412/live/refs/heads/main/no%20sex/TV_1(no%20sex).m3u8',
-        rootUrl: 'https://raw.githubusercontent.com/satan-1412/live/main/TV.m3u8',
-        mqttBroker: 'wss://broker.emqx.io:8084/mqtt'
-    };
-
-    let app = { 
-        mode: 'SAFE', data: [], currentCh: null, cat: 'ALL', 
-        mqtt: null, topic: null 
-    };
-
-    // ================= 初始化 =================
-    window.onload = () => {
-        initLogo();
-        initMQTT();
-        initCanvas();
-        loadData(CONFIG.safeUrl);
-    };
-
-    // ================= 1. 数据加载 (防崩溃) =================
-    function loadData(url) {
-        toast("正在同步频道...");
-        fetch(url + '?t=' + Date.now())
-            .then(r => r.text())
-            .then(parseM3U8)
-            .catch(() => toast("数据加载失败，请检查网络"));
-    }
-
-    function parseM3U8(txt) {
-        app.data = [];
-        const lines = txt.split('\n');
-        lines.forEach((line, i) => {
-            if (line.startsWith('#EXTINF')) {
-                const info = line.split(',')[1] || '频道 ' + i;
-                // 提取 Logo，如果提取不到，给个空字符串
-                const logo = (line.match(/tvg-logo="([^"]+)"/) || [])[1] || '';
-                const group = (line.match(/group-title="([^"]+)"/) || [])[1] || '其它';
-                const url = (lines[i+1] || '').trim();
-                
-                if (url && url.startsWith('http')) {
-                    app.data.push({ title: info, logo: logo, group: group, url: url });
-                }
-            }
-        });
+    <main class="main-container">
         
-        if (app.data.length === 0) {
-            document.getElementById('grid').innerHTML = '<div style="text-align:center;padding:50px;">暂无频道</div>';
-        } else {
-            renderLobby();
+        <div class="input-group">
+            <input type="text" class="url-input" id="urlInput" placeholder="在此粘贴 .m3u8 链接..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
+            <button class="play-btn" id="playBtn">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+        </div>
+
+        <div class="player-wrapper">
+            <video id="video" controls poster="https://via.placeholder.com/1280x720/000000/3ea6ff?text=Ready+To+Play"></video>
+        </div>
+
+        <div class="status-msg" id="statusMsg">准备就绪，点击播放按钮开始测试</div>
+
+    </main>
+
+    <script>
+        // --- UI 逻辑 ---
+        const menuBtn = document.getElementById('menuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const urlInput = document.getElementById('urlInput');
+        const playBtn = document.getElementById('playBtn');
+        const video = document.getElementById('video');
+        const statusMsg = document.getElementById('statusMsg');
+
+        // 打开/关闭 侧边栏
+        function toggleMenu() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
         }
-    }
 
-    // ================= 2. 大厅渲染 (Lobby) =================
-    function renderLobby() {
-        // 渲染分类
-        const groups = new Set(['ALL']);
-        app.data.forEach(d => groups.add(d.group));
-        const tabs = document.getElementById('tabs');
-        tabs.innerHTML = '';
-        groups.forEach(g => {
-            const btn = document.createElement('div');
-            btn.className = `tab ${g === app.cat ? 'active' : ''}`;
-            btn.innerText = g;
-            btn.onclick = () => { app.cat = g; renderLobby(); };
-            tabs.appendChild(btn);
-        });
+        menuBtn.addEventListener('click', toggleMenu);
+        overlay.addEventListener('click', toggleMenu);
 
-        // 渲染卡片
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        const search = document.getElementById('search').value.toLowerCase();
-        
-        const list = app.data.filter(d => {
-            if (app.cat !== 'ALL' && d.group !== app.cat) return false;
-            if (search && !d.title.toLowerCase().includes(search)) return false;
-            return true;
-        });
+        // --- 播放器逻辑 (Hls.js) ---
+        function loadVideo() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                statusMsg.textContent = "⚠️ 请先输入链接";
+                return;
+            }
 
-        list.forEach(d => {
-            const el = document.createElement('div');
-            el.className = 'card';
-            el.onclick = () => openPlayer(d);
-            
-            // 只有当 d.logo 存在时才显示 img，否则显示图标
-            // 修复图片黑条：CSS 已经加了 object-fit: cover
-            let img = `<div class="card-fallback"><i class="fas fa-tv"></i></div>`;
-            if (d.logo) {
-                img = `<div class="card-img-wrap"><img src="${d.logo}" class="card-img" onerror="this.style.display='none'"></div>` + img;
+            statusMsg.textContent = "⏳ 正在加载流媒体...";
+
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+                    statusMsg.textContent = "✅ 正在播放: " + url;
+                });
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                       statusMsg.textContent = "❌ 加载失败: 无法连接到源";
+                    }
+                });
+            }
+            // 兼容 Safari (Safari 原生支持 m3u8)
+            else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                    statusMsg.textContent = "✅ 正在播放 (Safari原生模式)";
+                });
             } else {
-                img = `<div class="card-img-wrap">` + img + `</div>`;
+                statusMsg.textContent = "❌ 你的浏览器不支持 HLS 播放";
             }
-
-            el.innerHTML = `${img}<div class="card-title">${d.title}</div>`;
-            grid.appendChild(el);
-        });
-    }
-
-    document.getElementById('search').oninput = renderLobby;
-
-    // ================= 3. 播放核心 (解决油管/泰国台) =================
-    const v = document.getElementById('video');
-    const hls = new Hls({
-        // 核心修复：不发送 Cookie，解决油管跨域问题
-        xhrSetup: (xhr) => { xhr.withCredentials = false; }
-    });
-
-    function openPlayer(d) {
-        if (!d) return; // 防崩溃
-        app.currentCh = d;
-        document.body.classList.add('in-player');
-        
-        // 渲染详情（就算数据缺失也不会崩）
-        document.getElementById('p-title').innerText = d.title || '未知频道';
-        document.getElementById('p-sub').innerText = `分类: ${d.group || '无'}`;
-        
-        // 播放逻辑
-        if (Hls.isSupported()) {
-            hls.loadSource(d.url);
-            hls.attachMedia(v);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => v.play());
-        } else {
-            // 苹果手机 / 移动端浏览器原生支持 HLS
-            // 这是解决泰国台/油管的关键！
-            v.src = d.url;
-            v.play();
         }
 
-        // 渲染下方同类列表
-        renderPlaylist(d.group);
-        // 切换弹幕房间
-        switchTopic(d.title);
-
-        // 检查是不是直播
-        v.onloadedmetadata = () => {
-            const isLive = v.duration === Infinity || v.duration > 86400;
-            document.getElementById('live-tag').style.display = isLive ? 'block' : 'none';
-        };
-    }
-
-    function renderPlaylist(group) {
-        const list = document.getElementById('playlist');
-        list.innerHTML = '';
-        app.data.filter(d => d.group === group).forEach(d => {
-            const el = document.createElement('div');
-            el.className = `play-item ${d === app.currentCh ? 'active' : ''}`;
-            el.onclick = () => openPlayer(d);
-            el.innerHTML = `<span>${d.title}</span><i class="fas fa-play"></i>`;
-            list.appendChild(el);
+        playBtn.addEventListener('click', loadVideo);
+        
+        // 允许回车键触发播放
+        urlInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                loadVideo();
+            }
         });
-    }
-
-    function exitPlayer() {
-        document.body.classList.remove('in-player');
-        v.pause();
-    }
-
-    // ================= 4. 弹幕 & MQTT =================
-    const canvas = document.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    let dms = [];
-
-    function initMQTT() {
-        try {
-            app.mqtt = mqtt.connect(CONFIG.mqttBroker);
-            app.mqtt.on('message', (t, m) => fireDm(m.toString(), false));
-        } catch(e) {}
-    }
-
-    function switchTopic(title) {
-        if (!app.mqtt || !title) return;
-        const id = btoa(encodeURIComponent(title)).replace(/=/g,'');
-        const newTopic = 'osb/v7/' + id;
-        if (app.topic) app.mqtt.unsubscribe(app.topic);
-        app.topic = newTopic;
-        app.mqtt.subscribe(newTopic);
-        dms = [];
-    }
-
-    function sendDm() {
-        const inp = document.getElementById('dm-input');
-        const txt = inp.value.trim();
-        if (!txt) return;
-        if (app.mqtt && app.topic) app.mqtt.publish(app.topic, txt);
-        fireDm(txt, true);
-        inp.value = '';
-    }
-
-    function initCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = 240; // 与 video 高度一致
-        ctx.font = "bold 20px Arial";
-        loop();
-    }
-    
-    function fireDm(text, self) {
-        dms.push({
-            text, x: canvas.width, y: 30 + Math.random() * (canvas.height - 50),
-            speed: 2 + Math.random(), color: self ? '#00ff88' : '#fff'
-        });
-    }
-
-    function loop() {
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        dms.forEach((d, i) => {
-            d.x -= d.speed;
-            ctx.fillStyle = d.color; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-            ctx.strokeText(d.text, d.x, d.y); ctx.fillText(d.text, d.x, d.y);
-            if (d.x < -500) dms.splice(i, 1);
-        });
-        requestAnimationFrame(loop);
-    }
-
-    // ================= 5. 彩蛋逻辑 =================
-    function initLogo() {
-        const logo = document.getElementById('logo-trigger');
-        let timer;
-        const start = () => { logo.classList.add('triggering'); timer = setTimeout(toggleMode, 10000); };
-        const end = () => { clearTimeout(timer); logo.classList.remove('triggering'); };
-        ['mousedown','touchstart'].forEach(e => logo.addEventListener(e, start));
-        ['mouseup','touchend'].forEach(e => logo.addEventListener(e, end));
-    }
-
-    function toggleMode() {
-        app.mode = app.mode === 'SAFE' ? 'ROOT' : 'SAFE';
-        document.body.classList.toggle('root-mode', app.mode === 'ROOT');
-        toast(app.mode === 'ROOT' ? "🔓 隐私模式" : "🛡️ 安全模式");
-        loadData(app.mode === 'ROOT' ? CONFIG.rootUrl : CONFIG.safeUrl);
-        if (navigator.vibrate) navigator.vibrate(500);
-    }
-
-    function toast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2000);
-    }
-</script>
+    </script>
 </body>
 </html>
