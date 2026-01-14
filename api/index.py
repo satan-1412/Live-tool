@@ -1,17 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 import yt_dlp
 import time
-import os
 
-# 这里的 root_path 确保能找到根目录下的 index.html
-app = Flask(__name__, static_folder='../', static_url_path='')
+app = Flask(__name__)
 
-# --- 1. 首页路由：让 Flask 直接负责显示网页 ---
-@app.route('/')
-def index():
-    return send_from_directory(app.static_folder, 'index.html')
-
-# --- 2. 捕捉接口：保持原来的逻辑 ---
+# 只处理 API 请求，不再处理首页
 @app.route('/api/check', methods=['GET'])
 def check_url():
     url = request.args.get('url')
@@ -53,5 +46,5 @@ def check_url():
     except Exception as e:
         return jsonify({"error": f"解析失败: {str(e)[:100]}"}), 500
 
-if __name__ == '__main__':
-    app.run()
+# 这是一个 Vercel 需要的入口
+app.debug = False
