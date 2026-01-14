@@ -59,7 +59,6 @@
 
         /* --- 3. 通用组件 --- */
         .section-title { font-size: 24px; font-weight: 700; margin: 10px 0 15px; text-align: center; color: var(--primary-color); }
-        .section-desc { text-align: center; color: var(--text-gray); font-size: 14px; margin-bottom: 25px; line-height: 1.6; max-width: 800px; margin-left: auto; margin-right: auto; }
         
         .input-group { display: flex; width: 100%; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
         .url-input { flex: 1; background: var(--surface-color); border: none; padding: 15px; color: white; font-size: 15px; }
@@ -108,7 +107,7 @@
         .card-name { font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
         .card-tag { font-size: 11px; color: var(--primary-color); background: rgba(62, 166, 255, 0.1); padding: 2px 6px; border-radius: 4px; display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
-        /* --- 6. 检测器样式 --- */
+        /* --- 6. 统一提示框样式 (Tips Box) --- */
         .tips-box {
             background: rgba(62, 166, 255, 0.08); border: 1px solid rgba(62, 166, 255, 0.2); border-radius: 8px;
             padding: 18px; margin-bottom: 25px; font-size: 14px; color: #ccc; line-height: 1.7;
@@ -305,11 +304,14 @@
 
         <div id="section-editor" class="section-view">
             <div class="section-title">直播源文件编辑</div>
-            <p class="section-desc">
-                可视化编辑您的 M3U/TXT 直播源文件。<br>
-                支持拖拽排序、网格视图、批量修改分组/Logo。<br>
-                <span style="color:#666; font-size:12px;">建议：为防止浏览器卡顿，建议编辑 10MB 以下的文件。</span>
-            </p>
+            <div class="tips-box">
+                <div class="tips-title">📝 编辑功能说明</div>
+                <span style="font-size:13px; line-height: 1.6;">
+                1. <b>操作模式</b>：提供“文本代码”、“可视化列表”和“网格资料”三种视图，支持拖拽排序。<br>
+                2. <b>批量处理</b>：在网格模式下，点击右上角进入批量模式，可快速修改分组名称和台标。<br>
+                3. <b>性能提示</b>：所有操作均在本地浏览器完成。为防止页面卡顿，建议处理 <b>10MB</b> 以下的文件。
+                </span>
+            </div>
             
             <div id="step-upload-editor">
                 <div class="upload-area" onclick="triggerUpload('editor')">
@@ -379,10 +381,14 @@
 
         <div id="section-converter" class="section-view">
             <div class="section-title">直播源文件转换</div>
-            <p class="section-desc">
-                一键转换直播源格式，支持 M3U、TXT、JSON 等主流格式。<br>
-                智能解析文件内容，自动适配不同播放器需求。
-            </p>
+            <div class="tips-box">
+                <div class="tips-title">💡 格式转换指南</div>
+                <span style="font-size:13px; line-height: 1.6;">
+                1. <b>智能解析</b>：系统会自动识别输入文件的格式（M3U/TXT），并提取频道名、链接、Logo及分组信息。<br>
+                2. <b>TiviMate 优化</b>：选择 TiviMate 格式时，会自动补充 <code>tvg-id</code> 等特定标签以匹配 EPG。<br>
+                3. <b>通用性</b>：TXT 格式为“频道名,链接”的简单结构，适用于绝大多数简易播放器。
+                </span>
+            </div>
 
             <div id="step-upload-converter">
                 <div class="upload-area" onclick="triggerUpload('converter')">
