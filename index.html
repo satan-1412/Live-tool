@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="referrer" content="no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>M3U/M3U8 Web Toolbox</title>
+    <title>M3U/M3U8在线工具箱</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <style>
-        /* --- 1. 全局变量 (恢复原版配色) --- */
+        /* --- 1. 恢复原版 Turn 13 配色方案 --- */
         :root {
             --bg-color: #0f0f0f;
             --surface-color: #1e1e1e;
@@ -27,7 +27,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- 2. 布局 --- */
+        /* --- 2. 布局修复 --- */
         .navbar { 
             display: flex; align-items: center; height: 64px; padding: 0 20px; 
             background: rgba(15,15,15,0.95); border-bottom: 1px solid var(--border-color); 
@@ -36,7 +36,7 @@
         }
         .menu-btn { background: none; border: none; color: white; font-size: 24px; padding: 5px; cursor: pointer; z-index: 101; }
         
-        /* 标题样式恢复 */
+        /* 标题渐变色恢复 */
         .app-title { 
             font-size: 22px; font-weight: 700; letter-spacing: 0.5px;
             background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); 
@@ -45,7 +45,7 @@
             pointer-events: none; width: fit-content;
         }
         
-        /* 语言切换器 */
+        /* 语言菜单 */
         .lang-container { position: relative; z-index: 101; }
         .lang-btn { background: none; border: 1px solid var(--border-color); color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
         .lang-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary-color); }
@@ -59,7 +59,6 @@
         .lang-item:hover { background: var(--surface-active); color: white; }
         .lang-flag { font-size: 18px; }
 
-        /* 侧边栏 */
         .sidebar { position: fixed; top: 0; left: 0; height: 100%; width: 280px; background: var(--surface-color); transform: translateX(-100%); transition: 0.3s; z-index: 200; box-shadow: 4px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
         .sidebar.active { transform: translateX(0); }
         .sidebar-header { height: 64px; display: flex; align-items: center; padding-left: 20px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-gray); flex-shrink: 0; }
@@ -73,7 +72,7 @@
         .section-view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
 
-        /* --- 3. 组件样式 (恢复原版 TipsBox) --- */
+        /* --- 3. 组件修复 --- */
         .section-title { font-size: 24px; font-weight: 700; margin: 10px 0 15px; text-align: center; color: var(--primary-color); }
         
         .tips-box {
@@ -86,12 +85,23 @@
         .url-input { flex: 1; background: var(--surface-color); border: none; padding: 15px; color: white; font-size: 15px; }
         .play-btn { background: var(--primary-color); color: #000; border: none; padding: 0 30px; font-weight: bold; white-space: nowrap; font-size: 15px; cursor: pointer;}
         .play-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
-        
-        .upload-area { border: 2px dashed var(--border-color); border-radius: 12px; padding: 50px 20px; text-align: center; background: rgba(255,255,255,0.02); margin-bottom: 20px; cursor: pointer; transition: 0.2s; }
-        .upload-area:hover { border-color: var(--primary-color); background: rgba(62, 166, 255, 0.05); }
-        .btn-upload { background: var(--primary-color); color: #000; padding: 12px 30px; border-radius: 30px; border: none; margin-top: 20px; font-weight: bold; font-size: 14px; cursor: pointer; }
 
-        /* --- 4. 捕捉结果样式 (保留图片容器) --- */
+        /* --- 4. 播放器修复 (解决巨大化问题) --- */
+        /* 使用 padding-top 56.25% 强制锁定 16:9 比例，防止被撑大 */
+        .player-wrapper { 
+            width: 100%; 
+            background: #000; 
+            border-radius: 12px; 
+            position: relative; 
+            padding-top: 56.25%; /* 16:9 关键代码 */
+            margin-bottom: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            overflow: hidden;
+        }
+        #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #statusMsg { text-align: center; font-size: 13px; color: #aaa; margin-top: 10px; }
+
+        /* --- 5. 捕捉结果卡片 (保持新版图片支持) --- */
         .capture-result { margin-top: 25px; display: none; }
         .result-card {
             background: rgba(30, 30, 30, 0.95);
@@ -101,7 +111,7 @@
             padding: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
         }
-        /* 图片容器：无图时隐藏 */
+        /* 图片容器 */
         .result-thumb-box {
             width: 100%; height: 180px; background: #000; border-radius: 8px;
             margin-bottom: 15px; overflow: hidden; display: none; position: relative;
@@ -117,23 +127,28 @@
         .meta-label { font-size: 12px; color: var(--text-gray); margin-bottom: 4px; text-transform: uppercase; }
         .meta-value { font-size: 14px; color: #eee; font-weight: 500; }
         
+        .format-list-title { font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--primary-color); }
         .quality-badges { display: flex; flex-wrap: wrap; gap: 8px; }
         .quality-badge { background: rgba(62, 166, 255, 0.1); color: var(--primary-color); border: 1px solid rgba(62, 166, 255, 0.3); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-family: monospace; transition: 0.2s; }
         .quality-badge.audio { border-color: var(--success-color); color: var(--success-color); background: rgba(43,166,64,0.1); }
-
         .capture-loading { display: none; text-align: center; color: var(--text-gray); padding: 40px; }
         .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* --- 5. 编辑器 & 其他 --- */
+        /* --- 6. 编辑器 & 转换器 & 检测器 --- */
         .editor-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--surface-color); padding: 10px; border-radius: 8px; flex-wrap: wrap; gap: 10px; }
         .toolbar-group { display: flex; gap: 8px; }
         .tool-btn { background: rgba(255,255,255,0.1); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; transition: 0.2s; }
         .tool-btn.active { background: var(--primary-color); color: #000; font-weight: bold; }
         .tool-btn.primary { background: var(--primary-color); color: #000; font-weight: bold; }
+        .tool-btn.danger { background: rgba(255, 77, 77, 0.15); color: var(--danger-color); border: 1px solid var(--danger-color); }
         
         #codeEditor { width: 100%; height: 600px; background: #121212; color: #d4d4d4; border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5; white-space: pre; resize: vertical; }
         
+        .upload-area { border: 2px dashed var(--border-color); border-radius: 12px; padding: 50px 20px; text-align: center; background: rgba(255,255,255,0.02); margin-bottom: 20px; cursor: pointer; transition: 0.2s; }
+        .upload-area:hover { border-color: var(--primary-color); background: rgba(62, 166, 255, 0.05); }
+        .btn-upload { background: var(--primary-color); color: #000; padding: 12px 30px; border-radius: 30px; border: none; margin-top: 20px; font-weight: bold; font-size: 14px; cursor: pointer; }
+
         /* 批量栏 */
         .batch-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #222; border-top: 2px solid var(--primary-color); padding: 15px 30px; display: none; justify-content: space-between; align-items: center; z-index: 300; box-shadow: 0 -5px 30px rgba(0,0,0,0.7); }
         .batch-info { font-weight: bold; font-size: 15px; margin-right: 20px; color: white; }
@@ -143,11 +158,15 @@
         #gridEditor { display: none; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; padding-bottom: 100px; }
         .grid-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
         .grid-card.selected { border: 2px solid var(--primary-color); background: rgba(62, 166, 255, 0.1); }
+        .check-circle { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
+        .grid-card.selecting .check-circle { display: block; } 
+        .grid-card.selected .check-circle { background: var(--primary-color); border-color: var(--primary-color); }
         .card-img-box { width: 100%; height: 0; padding-bottom: 56.25%; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
-        .card-img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; }
+        .card-img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; background: #222; }
         .card-placeholder { position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #444; font-weight: bold; }
         .card-info { padding: 12px; }
         .card-name { font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
+        .card-tag { font-size: 11px; color: var(--primary-color); background: rgba(62, 166, 255, 0.1); padding: 2px 6px; border-radius: 4px; display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
         /* 模态框 */
         .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
@@ -156,8 +175,11 @@
         .edit-header { padding: 20px 25px; border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 18px; color: white; display: flex; justify-content: space-between; align-items: center; }
         .edit-body { padding: 25px; overflow-y: auto; }
         .edit-footer { padding: 20px 25px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: rgba(0,0,0,0.2); }
+        .form-group { margin-bottom: 18px; }
+        .form-label { display: block; font-size: 13px; color: var(--text-gray); margin-bottom: 8px; font-weight: 500; }
         .form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; color: white; font-size: 15px; transition: 0.2s; }
-
+        .form-input:focus { border-color: var(--primary-color); background: rgba(0,0,0,0.5); }
+        
         /* 转换器 */
         .format-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 30px; }
         .format-btn { background: var(--surface-color); border: 1px solid var(--border-color); padding: 25px; border-radius: 15px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; height: 100%; }
@@ -166,7 +188,10 @@
         .fmt-name { font-weight: bold; font-size: 16px; color: white; margin-bottom: 5px; }
         .fmt-desc { font-size: 13px; color: var(--text-gray); line-height: 1.4; }
 
-        /* 检测器列表 */
+        /* 检测器 */
+        .check-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--surface-color); padding: 12px 15px; border-radius: 10px; position: sticky; top: 0; z-index: 50; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color); }
+        .progress-bar { flex: 1; height: 8px; background: #333; border-radius: 4px; margin: 0 20px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--success-color), #4cd137); transition: width 0.3s; }
         .check-item { background: var(--surface-color); border: 1px solid var(--border-color); margin-bottom: 10px; padding: 12px 18px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; transition: 0.2s; }
         .check-info { flex: 1; min-width: 0; margin-right: 15px; }
         .check-name { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
@@ -256,7 +281,6 @@
     <nav class="navbar">
         <button class="menu-btn" onclick="toggleMenu()">☰</button>
         <div class="app-title" data-i18n="app_title">M3U/M3U8在线工具箱</div>
-        
         <div class="lang-container">
             <button class="lang-btn" onclick="toggleLangMenu()">
                 <span>🌍</span> <span id="currentLangLabel">CN</span>
@@ -300,21 +324,19 @@
                 <span style="font-size:13px; line-height: 1.6;" data-i18n="tips_capture_content">
                 <b>功能用途：</b>基于 yt-dlp 核心，测试能否从视频网站（YouTube, Twitch, 虎牙等）解析出 M3U8 直播流或真实播放地址。<br><br>
                 <b>⚠️ 成功率说明：</b><br>
-                1. <b>反爬封锁</b>：YouTube 等大平台会对“云服务器 IP”（如 Vercel, AWS）进行严格的风控，导致解析失败。<br>
-                2. <b>解决方案</b>：强烈建议使用<b>“本地部署”</b>（如 Termux、NAS）或<b>“私人服务器”</b>运行后端。<br>
-                3. <b>操作建议</b>：如果遇到解析失败，请尝试<b>点击 2-3 次测试</b>，或更换节点后再试。
+                1. <b>反爬封锁</b>：YouTube 等大平台会对“云服务器 IP”进行严格风控。<br>
+                2. <b>解决方案</b>：强烈建议使用<b>“本地部署”</b>（Termux/NAS）或<b>“私人服务器”</b>。<br>
+                3. <b>操作建议</b>：如遇失败，请尝试<b>点击 2-3 次测试</b>或更换节点。
                 </span>
             </div>
             <div class="input-group">
                 <input type="text" class="url-input" id="captureInput" placeholder="https://..." data-i18n-placeholder="placeholder_url">
                 <button class="play-btn" id="captureBtn" onclick="testCaptureUrl()" data-i18n="btn_test_link">测试链接</button>
             </div>
-
             <div id="captureLoading" class="capture-loading">
                 <div class="spinner"></div>
                 <div data-i18n="msg_analyzing">正在云端分析中，请耐心等待...</div>
             </div>
-
             <div id="captureResult" class="capture-result"></div>
         </div>
 
@@ -325,10 +347,9 @@
                 <span data-i18n="desc_editor">
                 1. <b>操作模式</b>：提供“文本代码”、“可视化列表”和“网格资料”三种视图，支持拖拽排序。<br>
                 2. <b>批量处理</b>：在网格模式下，点击右上角进入批量模式，可快速修改分组名称和台标。<br>
-                3. <b>性能提示</b>：所有操作均在本地浏览器完成。为防止页面卡顿，建议处理 <b>10MB</b> 以下的文件。
+                3. <b>性能提示</b>：本地浏览器处理。建议处理 <b>10MB</b> 以下的文件。
                 </span>
             </div>
-            
             <div id="step-upload-editor">
                 <div class="upload-area" onclick="triggerUpload('editor')">
                     <input type="file" id="fileInputEditor" hidden accept=".m3u,.m3u8,.txt">
@@ -337,7 +358,6 @@
                     <button class="btn-upload" data-i18n="btn_select_file">选择文件</button>
                 </div>
             </div>
-
             <div id="step-edit-ui" style="display:none;">
                 <div class="editor-toolbar">
                     <div class="toolbar-group">
@@ -351,11 +371,9 @@
                         <button class="tool-btn primary" onclick="saveAndDownload()" data-i18n="btn_save">💾 保存</button>
                     </div>
                 </div>
-
                 <textarea id="codeEditor" spellcheck="false" placeholder="#EXTM3U..."></textarea>
                 <ul id="visualEditor" style="display:none; list-style:none;"></ul>
                 <div id="gridEditor" style="display:none;"></div>
-                
                 <div style="text-align:center; margin-top:30px;">
                     <button onclick="resetEditor()" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:14px;" data-i18n="btn_discard">❌ 放弃修改并重新上传</button>
                 </div>
@@ -364,16 +382,14 @@
 
         <div id="section-checker" class="section-view">
             <div class="section-title" data-i18n="title_checker">直播源在线检测</div>
-            
             <div class="tips-box">
                 <div class="tips-title" data-i18n="tips_title">📢 检测机制说明</div>
                 <span data-i18n="tips_checker_content">
-                1. <b>智能探测</b>：如果直接连接失败，会自动切换“隐私探测”模式。<br>
-                2. <b>⚠️ 可能有效</b>：黄色状态表示服务器已连通，但内容被浏览器安全策略拦截。<br>
-                3. <b>❌ 无效</b>：连接被拒绝或超时。
+                1. <b>智能探测</b>：自动使用“混合探测模式”。<br>
+                2. <b>⚠️ 可能有效</b>：黄色状态表示服务器连通，但被浏览器拦截。<br>
+                3. <b>❌ 无效</b>：连接拒绝或超时。
                 </span>
             </div>
-
             <div id="step-upload-checker">
                 <div class="upload-area" onclick="triggerUpload('checker')">
                     <input type="file" id="fileInputChecker" hidden accept=".m3u,.m3u8,.txt">
@@ -382,7 +398,6 @@
                     <button class="btn-upload" data-i18n="btn_select_file">选择文件</button>
                 </div>
             </div>
-
             <div id="step-check-ui" style="display:none;">
                 <div class="check-toolbar">
                     <div style="font-size:14px; font-weight:bold;" data-i18n="label_batch_check">批量检测</div>
@@ -401,12 +416,11 @@
             <div class="tips-box">
                 <div class="tips-title" data-i18n="tips_title">💡 格式转换指南</div>
                 <span data-i18n="desc_converter">
-                1. <b>智能解析</b>：系统会自动识别输入文件的格式（M3U/TXT），并提取频道名、链接、Logo及分组信息。<br>
+                1. <b>智能解析</b>：系统会自动识别输入文件的格式（M3U/TXT）。<br>
                 2. <b>TiviMate 优化</b>：选择 TiviMate 格式时，会自动补充 <code>tvg-id</code> 等特定标签以匹配 EPG。<br>
                 3. <b>通用性</b>：TXT 格式为“频道名,链接”的简单结构，适用于绝大多数简易播放器。
                 </span>
             </div>
-
             <div id="step-upload-converter">
                 <div class="upload-area" onclick="triggerUpload('converter')">
                     <input type="file" id="fileInputConverter" hidden accept=".m3u,.m3u8,.txt">
@@ -415,16 +429,13 @@
                     <button class="btn-upload" data-i18n="btn_select_file">选择文件</button>
                 </div>
             </div>
-
             <div id="step-convert-ui" style="display:none;">
                 <div class="tips-box" style="text-align:center; background:rgba(255,255,255,0.05); border-color:var(--border-color);">
                     <div style="margin-bottom:10px; color:var(--primary-color);" data-i18n="label_file_read">📂 已读取文件</div>
                     <div id="convertFileName" style="font-weight:bold; color:white; font-size:16px;">playlist.m3u</div>
                     <div style="font-size:13px; color:#aaa; margin-top:8px;"><span data-i18n="label_channel_count">共识别有效频道：</span> <span id="convertCount">0</span></div>
                 </div>
-
                 <p style="text-align:center; margin-top:40px; font-weight:bold; font-size:15px;" data-i18n="label_select_format">请选择目标格式：</p>
-                
                 <div class="format-grid">
                     <div class="format-btn" onclick="doConvert('m3u')">
                         <div class="fmt-icon">📄</div>
@@ -447,7 +458,6 @@
                         <div class="fmt-desc" data-i18n="fmt_tivi_desc">优化版M3U，补全tvg-id</div>
                     </div>
                 </div>
-
                 <div style="text-align:center; margin-top:40px;">
                     <button onclick="resetConverter()" style="background:none; border:none; color:var(--text-gray); cursor:pointer; font-size:14px;" data-i18n="btn_reupload">↩️ 返回重新上传</button>
                 </div>
@@ -455,23 +465,24 @@
         </div>
 
     </main>
+
     <script>
         // ==========================================
-        // 1. 全局配置与状态管理
+        // 1. 全局配置与状态
         // ==========================================
         
-        // ⚠️ 重要：如果您的后端在 Termux 本地运行，请保留 127.0.0.1
-        // 如果您有公网域名，请替换为您的域名 (注意 HTTPS 混合内容限制)
+        // ⚠️ 如果您是在 Termux 本机访问，保持这个地址不变
+        // ⚠️ 如果是电脑访问手机，请将 127.0.0.1 改为手机的局域网 IP (如 192.168.x.x)
         const API_BASE = "http://127.0.0.1:5000/api/check";
         
         let currentLang = 'zh'; // 默认语言
         
-        // 核心数据状态
+        // 数据容器
         let editorData = { buffer: '', name: 'playlist.m3u', channelData: [] };
         let checkerData = { channels: [] };
         let converterData = { channels: [], name: '' };
         
-        // 界面交互状态
+        // 交互状态
         let isBatchMode = false;
         let selectedIndices = new Set();
         let currentUploadTarget = ''; 
@@ -479,11 +490,11 @@
         let currentBatchType = '';
 
         // ==========================================
-        // 2. 完整多语言词典 (9国语言旗舰版)
+        // 2. 完整多语言词典 (9国语言・详细旗舰版)
         // ==========================================
         const i18nData = {
             "zh": {
-                "app_title": "M3U/M3U8 Web Toolbox", "sidebar_title": "工具箱菜单",
+                "app_title": "M3U/M3U8 在线工具箱", "sidebar_title": "工具箱菜单",
                 "menu_tester": "📺 在线链接测试", "menu_capture": "🔗 在线网站捕捉测试", "menu_editor": "📝 直播源在线编辑", "menu_checker": "📡 直播源在线检测", "menu_converter": "🔄 直播源文件转换",
                 "title_tester": "M3U/M3U8 链接在线测试", "btn_play": "播放", "status_ready": "准备就绪", 
                 "tips_tester_content": "此工具仅用于测试链接的<b>连通性</b>和<b>初始加载</b>。<br>注意：部分流媒体因 <b>CORS（跨域策略）</b> 限制可能无法在浏览器中播放，或者拖动进度条时可能出现缓冲错误，这通常属于源站限制而非工具故障。",
@@ -499,17 +510,17 @@
                 "title_converter": "直播源文件转换", "desc_converter": "1. <b>智能解析</b>：系统会自动识别输入文件的格式（M3U/TXT）。<br>2. <b>TiviMate</b>：选择 TiviMate 格式时，会自动补充 <code>tvg-id</code>。<br>3. <b>通用性</b>：TXT 格式为“频道名,链接”结构。",
                 "upload_converter_text": "导入任意格式直播源", "label_file_read": "📂 已读取文件", "label_channel_count": "共识别有效频道：", "label_select_format": "请选择目标格式：",
                 "fmt_m3u_desc": "标准格式，支持台标分组", "fmt_txt": "TXT 文本", "fmt_txt_desc": "简单逗号分隔", "fmt_json_desc": "开发人员通用数据格式", "fmt_tivi_desc": "优化版M3U，补全tvg-id",
-                "btn_reupload": "↩️ 返回重新上传", "batch_selected": "已选 0 个",
+                "btn_reupload": "↩️ 返回重新上传", "batch_selected": "已选 0 个", "btn_cancel": "取消", "btn_confirm": "确定", "btn_add_prop": "+ 属性",
                 "status_valid": "✅ 解析成功", "status_invalid": "❌ 解析失败", "err_network": "网络或API错误",
-                "lbl_source": "来源", "lbl_duration": "时长", "lbl_quality": "可用画质/格式", "lbl_raw": "原始流",
-                "modal_file_title": "文件处理", "modal_file_desc": "文件读取成功！是否继续？", "modal_batch_title": "批量修改"
+                "lbl_title": "标题", "lbl_source": "来源", "lbl_duration": "时长", "lbl_quality": "可用画质/格式", "lbl_raw": "原始流",
+                "modal_file_title": "文件处理", "modal_file_desc": "文件读取成功！是否继续？", "modal_batch_title": "批量修改", "modal_edit_title": "编辑资料"
             },
             "en": {
                 "app_title": "M3U/M3U8 Web Toolbox", "sidebar_title": "Toolbox Menu",
                 "menu_tester": "📺 Stream Tester", "menu_capture": "🔗 Stream Capture", "menu_editor": "📝 Playlist Editor", "menu_checker": "📡 Stream Checker", "menu_converter": "🔄 Converter",
-                "title_tester": "M3U/M3U8 Stream Tester", "btn_play": "Play", "status_ready": "Ready", 
+                "title_tester": "Stream Tester", "btn_play": "Play", "status_ready": "Ready", 
                 "tips_tester_content": "Testing for <b>connectivity</b> only.<br>Note: Failures may be due to <b>CORS</b> restrictions on the source server, not this tool.",
-                "title_capture": "Stream Capture Test (yt-dlp)", "btn_test_link": "Test Link", "msg_analyzing": "Analyzing in cloud...",
+                "title_capture": "Stream Capture (yt-dlp)", "btn_test_link": "Test Link", "msg_analyzing": "Analyzing...",
                 "tips_capture_content": "<b>Use:</b> extract M3U8/Direct links from sites (YouTube, Twitch, etc) via yt-dlp.<br><br><b>⚠️ Success Rate:</b><br>1. <b>Blocking</b>: Major sites block cloud IPs (AWS/Vercel).<br>2. <b>Solution</b>: Highly recommend <b>Local Deployment</b> (Termux/Home Server).<br>3. <b>Tip</b>: Retry 2-3 times if failed.",
                 "title_editor": "Playlist Editor", "desc_editor": "1. <b>Views</b>: Text, List, Grid.<br>2. <b>Batch</b>: Edit groups/logos in Grid view.<br>3. <b>Perf</b>: Local processing. Keep under <b>10MB</b>.",
                 "upload_text": "Click or Drag File", "btn_select_file": "Select File",
@@ -517,14 +528,14 @@
                 "btn_batch": "✅ Batch", "btn_add": "➕ Add", "btn_save": "💾 Save", "btn_discard": "❌ Discard", "btn_select_all": "🔁 All",
                 "btn_edit_group": "Group", "btn_edit_logo": "Logo", "btn_delete": "Delete", "btn_exit": "Exit",
                 "title_checker": "Stream Checker", "tips_checker_content": "1. <b>Smart Probe</b>: Retries with 'No-CORS'.<br>2. <b>⚠️ Likely Valid</b>: Server reachable but blocked by browser.<br>3. <b>❌ Invalid</b>: Connection refused.",
-                "upload_checker_text": "Import Playlist", "btn_start_check": "▶ Start Check", "btn_reset": "🔄 Reset",
+                "upload_checker_text": "Import Playlist", "btn_start_check": "▶ Start", "btn_reset": "🔄 Reset",
                 "title_converter": "Format Converter", "desc_converter": "1. <b>Smart Parse</b>: Auto-detects M3U/TXT.<br>2. <b>TiviMate</b>: Adds <code>tvg-id</code>.<br>3. <b>TXT</b>: 'Name,URL' format.",
                 "upload_converter_text": "Import File", "label_file_read": "📂 Loaded", "label_channel_count": "Channels:", "label_select_format": "Target Format:",
                 "fmt_m3u_desc": "Standard M3U", "fmt_txt": "TXT File", "fmt_txt_desc": "Comma separated", "fmt_json_desc": "JSON Data", "fmt_tivi_desc": "For TiviMate",
-                "btn_reupload": "↩️ Re-upload", "batch_selected": "Selected 0",
+                "btn_reupload": "↩️ Re-upload", "batch_selected": "Selected 0", "btn_cancel": "Cancel", "btn_confirm": "Confirm", "btn_add_prop": "+ Prop",
                 "status_valid": "✅ Success", "status_invalid": "❌ Failed", "err_network": "Network Error",
-                "lbl_source": "Source", "lbl_duration": "Duration", "lbl_quality": "Quality", "lbl_raw": "Raw",
-                "modal_file_title": "File Loaded", "modal_file_desc": "Proceed?", "modal_batch_title": "Batch Edit"
+                "lbl_title": "Title", "lbl_source": "Source", "lbl_duration": "Duration", "lbl_quality": "Formats", "lbl_raw": "Raw Stream",
+                "modal_file_title": "File Loaded", "modal_file_desc": "Proceed?", "modal_batch_title": "Batch Edit", "modal_edit_title": "Edit Channel"
             },
             "ja": {
                 "app_title": "M3U/M3U8 ツールボックス", "sidebar_title": "メニュー",
@@ -542,22 +553,138 @@
                 "title_converter": "フォーマット変換", "desc_converter": "1. <b>自動認識</b>: M3U/TXT。<br>2. <b>TiviMate</b>: <code>tvg-id</code>補完。<br>3. <b>TXT</b>: カンマ区切り。",
                 "upload_converter_text": "ファイルをインポート", "label_file_read": "📂 完了", "label_channel_count": "チャンネル数：", "label_select_format": "変換形式：",
                 "fmt_m3u_desc": "標準形式", "fmt_txt": "TXT テキスト", "fmt_txt_desc": "カンマ区切り", "fmt_json_desc": "JSON", "fmt_tivi_desc": "TiviMate用",
-                "btn_reupload": "↩️ 再アップロード", "batch_selected": "選択 0",
+                "btn_reupload": "↩️ 再アップロード", "batch_selected": "選択 0", "btn_cancel": "キャンセル", "btn_confirm": "確定", "btn_add_prop": "+ 属性",
                 "status_valid": "✅ 成功", "status_invalid": "❌ 失敗", "err_network": "ネットワークエラー",
-                "lbl_source": "ソース", "lbl_duration": "時間", "lbl_quality": "画質/形式", "lbl_raw": "Raw流",
-                "modal_file_title": "確認", "modal_file_desc": "続行しますか？", "modal_batch_title": "一括編集"
+                "lbl_title": "タイトル", "lbl_source": "ソース", "lbl_duration": "時間", "lbl_quality": "画質/形式", "lbl_raw": "Raw流",
+                "modal_file_title": "確認", "modal_file_desc": "続行しますか？", "modal_batch_title": "一括編集", "modal_edit_title": "詳細編集"
             },
-            // ... (Ko, Ru, De, Fr, Es, Pt 内容相同，此处省略以确保代码段长度适中，逻辑已在下方自动回退处理)
-        };
-
-        // 自动填充其他语言 (Ko, Ru, De, Fr, Es, Pt)，确保不报错
-        // 实际使用时，您可以随时在此处补充对应的翻译文本
-        ['ko', 'ru', 'de', 'fr', 'es', 'pt'].forEach(lang => {
-            if (!i18nData[lang]) {
-                // 暂时使用英文作为兜底，防止界面空白，等您需要时可随时替换
-                i18nData[lang] = { ...i18nData['en'] }; 
+            "ko": {
+                "app_title": "M3U/M3U8 웹 도구 상자", "sidebar_title": "메뉴",
+                "menu_tester": "📺 스트림 테스터", "menu_capture": "🔗 캡처 테스트", "menu_editor": "📝 에디터", "menu_checker": "📡 체커", "menu_converter": "🔄 변환기",
+                "title_tester": "스트림 연결 테스트", "btn_play": "재생", "status_ready": "준비 완료", "tips_tester_content": "링크의 <b>연결성</b> 및 <b>초기 로딩</b>만 테스트합니다.<br>참고: <b>CORS</b> 제한으로 인해 재생되지 않을 수 있습니다.",
+                "title_capture": "사이트 캡처 (yt-dlp)", "btn_test_link": "테스트", "msg_analyzing": "분석 중...",
+                "tips_capture_content": "<b>용도:</b> yt-dlp를 사용하여 사이트에서 M3U8 추출.<br><br><b>⚠️ 주의:</b><br>1. <b>차단</b>: 주요 사이트는 클라우드 IP를 차단합니다.<br>2. <b>해결책</b>: <b>로컬 배포</b>(Termux 등) 권장.<br>3. <b>팁</b>: 실패 시 2-3회 재시도하세요.",
+                "title_editor": "플레이리스트 에디터", "desc_editor": "1. <b>모드</b>: 텍스트/리스트/그리드.<br>2. <b>일괄</b>: 그리드에서 그룹/로고 일괄 편집.<br>3. <b>성능</b>: <b>10MB</b> 이하 권장.",
+                "upload_text": "파일 선택", "btn_select_file": "선택",
+                "mode_text": "📄 텍스트", "mode_list": "☰ 리스트", "mode_grid": "▦ 그리드",
+                "btn_batch": "✅ 선택", "btn_add": "➕ 추가", "btn_save": "💾 저장", "btn_discard": "❌ 취소", "btn_select_all": "🔁 전체",
+                "btn_edit_group": "그룹", "btn_edit_logo": "로고", "btn_delete": "삭제", "btn_exit": "종료",
+                "title_checker": "스트림 체커", "tips_checker_content": "1. <b>스마트 감지</b>: No-CORS 재시도.<br>2. <b>⚠️ 가능성 있음</b>: 브라우저 차단됨.<br>3. <b>❌ 무효</b>: 연결 거부됨.",
+                "upload_checker_text": "파일 가져오기", "btn_start_check": "▶ 시작", "btn_reset": "🔄 초기화",
+                "title_converter": "포맷 변환기", "desc_converter": "1. <b>자동 감지</b>: M3U/TXT.<br>2. <b>TiviMate</b>: <code>tvg-id</code> 추가.<br>3. <b>TXT</b>: 쉼표 구분.",
+                "upload_converter_text": "파일 가져오기", "label_file_read": "📂 로드됨", "label_channel_count": "채널 수:", "label_select_format": "대상 형식:",
+                "fmt_m3u_desc": "표준 형식", "fmt_txt": "TXT 파일", "fmt_txt_desc": "쉼표 구분", "fmt_json_desc": "JSON 데이터", "fmt_tivi_desc": "TiviMate용",
+                "btn_reupload": "↩️ 재업로드", "batch_selected": "선택됨 0", "btn_cancel": "취소", "btn_confirm": "확인", "btn_add_prop": "+ 속성",
+                "status_valid": "✅ 성공", "status_invalid": "❌ 실패", "err_network": "네트워크 오류",
+                "lbl_title": "제목", "lbl_source": "소스", "lbl_duration": "재생 시간", "lbl_quality": "화질/형식", "lbl_raw": "원본 스트림",
+                "modal_file_title": "확인", "modal_file_desc": "계속하시겠습니까?", "modal_batch_title": "일괄 편집", "modal_edit_title": "채널 편집"
+            },
+            "ru": {
+                "app_title": "M3U/M3U8 Инструменты", "sidebar_title": "Меню",
+                "menu_tester": "📺 Тест стрима", "menu_capture": "🔗 Захват стрима", "menu_editor": "📝 Редактор", "menu_checker": "📡 Проверка", "menu_converter": "🔄 Конвертер",
+                "title_tester": "Тестер ссылок", "btn_play": "Пуск", "status_ready": "Готов", "tips_tester_content": "Проверка <b>доступности</b> ссылки.<br>Примечание: Ошибки могут быть вызваны <b>CORS</b>, а не инструментом.",
+                "title_capture": "Захват стрима (yt-dlp)", "btn_test_link": "Тест", "msg_analyzing": "Анализ...",
+                "tips_capture_content": "<b>Цель:</b> извлечение M3U8 с сайтов через yt-dlp.<br><br><b>⚠️ Важно:</b><br>1. <b>Блокировка</b>: Сайты блокируют облачные IP.<br>2. <b>Решение</b>: Используйте <b>локальный сервер</b> (Termux).<br>3. <b>Совет</b>: Попробуйте 2-3 раза при ошибке.",
+                "title_editor": "Редактор плейлистов", "desc_editor": "1. <b>Виды</b>: Текст/Список/Сетка.<br>2. <b>Пакетно</b>: Редактирование в Сетке.<br>3. <b>Файл</b>: До <b>10МБ</b>.",
+                "upload_text": "Выберите файл", "btn_select_file": "Выбрать",
+                "mode_text": "📄 Текст", "mode_list": "☰ Список", "mode_grid": "▦ Сетка",
+                "btn_batch": "✅ Пакетно", "btn_add": "➕ Добавить", "btn_save": "💾 Сохр.", "btn_discard": "❌ Отмена", "btn_select_all": "🔁 Все",
+                "btn_edit_group": "Группа", "btn_edit_logo": "Лого", "btn_delete": "Удалить", "btn_exit": "Выход",
+                "title_checker": "Проверка ссылок", "tips_checker_content": "1. <b>Умно</b>: Повтор с No-CORS.<br>2. <b>⚠️ Вероятно</b>: Сервер доступен, но блог браузером.<br>3. <b>❌ Недоступно</b>: Ошибка сети.",
+                "upload_checker_text": "Импорт плейлиста", "btn_start_check": "▶ Старт", "btn_reset": "🔄 Сброс",
+                "title_converter": "Конвертер форматов", "desc_converter": "1. <b>Авто</b>: M3U/TXT.<br>2. <b>TiviMate</b>: Добавляет <code>tvg-id</code>.<br>3. <b>TXT</b>: Формат 'Имя,URL'.",
+                "upload_converter_text": "Импорт файла", "label_file_read": "📂 Загружено", "label_channel_count": "Каналов:", "label_select_format": "Формат:",
+                "fmt_m3u_desc": "Стандарт M3U", "fmt_txt": "TXT файл", "fmt_txt_desc": "Разделитель запятая", "fmt_json_desc": "JSON данные", "fmt_tivi_desc": "Для TiviMate",
+                "btn_reupload": "↩️ Заново", "batch_selected": "Выбрано 0", "btn_cancel": "Отмена", "btn_confirm": "ОК", "btn_add_prop": "+ Св-во",
+                "status_valid": "✅ Успех", "status_invalid": "❌ Ошибка", "err_network": "Ошибка сети",
+                "lbl_title": "Название", "lbl_source": "Источник", "lbl_duration": "Длит.", "lbl_quality": "Качество", "lbl_raw": "Raw",
+                "modal_file_title": "Файл загружен", "modal_file_desc": "Продолжить?", "modal_batch_title": "Пакетное ред.", "modal_edit_title": "Ред. канала"
+            },
+            "de": {
+                "app_title": "M3U/M3U8 Web-Toolbox", "sidebar_title": "Menü",
+                "menu_tester": "📺 Stream-Tester", "menu_capture": "🔗 Stream-Capture", "menu_editor": "📝 Editor", "menu_checker": "📡 Checker", "menu_converter": "🔄 Konverter",
+                "title_tester": "Stream-Tester", "btn_play": "Abspielen", "status_ready": "Bereit", "tips_tester_content": "Testet nur <b>Erreichbarkeit</b>.<br>Hinweis: Fehler oft durch <b>CORS</b>-Beschränkungen verursacht.",
+                "title_capture": "Stream-Capture (yt-dlp)", "btn_test_link": "Testen", "msg_analyzing": "Analysiere...",
+                "tips_capture_content": "<b>Nutzen:</b> Extrahiert M3U8 via yt-dlp.<br><br><b>⚠️ Erfolg:</b><br>1. <b>Blockaden</b>: Große Seiten blockieren Cloud-IPs.<br>2. <b>Lösung</b>: <b>Lokaler Server</b> (Termux) empfohlen.<br>3. <b>Tipp</b>: Bei Fehler 2-3 Mal versuchen.",
+                "title_editor": "Playlist-Editor", "desc_editor": "1. <b>Modi</b>: Text/Liste/Raster.<br>2. <b>Batch</b>: Massenbearbeitung im Raster.<br>3. <b>Limit</b>: Unter <b>10MB</b> empfohlen.",
+                "upload_text": "Datei auswählen", "btn_select_file": "Wählen",
+                "mode_text": "📄 Text", "mode_list": "☰ Liste", "mode_grid": "▦ Raster",
+                "btn_batch": "✅ Batch", "btn_add": "➕ Neu", "btn_save": "💾 Speichern", "btn_discard": "❌ Verwerfen", "btn_select_all": "🔁 Alle",
+                "btn_edit_group": "Gruppe", "btn_edit_logo": "Logo", "btn_delete": "Löschen", "btn_exit": "Ende",
+                "title_checker": "Stream-Checker", "tips_checker_content": "1. <b>Smart</b>: Wiederholung mit No-CORS.<br>2. <b>⚠️ Wahrscheinlich</b>: Server erreichbar, Browser blockt.<br>3. <b>❌ Ungültig</b>: Verbindung abgelehnt.",
+                "upload_checker_text": "Playlist importieren", "btn_start_check": "▶ Start", "btn_reset": "🔄 Reset",
+                "title_converter": "Format-Konverter", "desc_converter": "1. <b>Auto</b>: M3U/TXT.<br>2. <b>TiviMate</b>: Ergänzt <code>tvg-id</code>.<br>3. <b>TXT</b>: 'Name,URL' Format.",
+                "upload_converter_text": "Datei importieren", "label_file_read": "📂 Geladen", "label_channel_count": "Kanäle:", "label_select_format": "Zielformat:",
+                "fmt_m3u_desc": "Standard M3U", "fmt_txt": "TXT Datei", "fmt_txt_desc": "Kommagetrennt", "fmt_json_desc": "JSON Daten", "fmt_tivi_desc": "Für TiviMate",
+                "btn_reupload": "↩️ Neu laden", "batch_selected": "Gewählt 0", "btn_cancel": "Abbruch", "btn_confirm": "OK", "btn_add_prop": "+ Eigenschaft",
+                "status_valid": "✅ Erfolg", "status_invalid": "❌ Fehler", "err_network": "Netzwerkfehler",
+                "lbl_title": "Titel", "lbl_source": "Quelle", "lbl_duration": "Dauer", "lbl_quality": "Qualität", "lbl_raw": "Raw",
+                "modal_file_title": "Geladen", "modal_file_desc": "Fortfahren?", "modal_batch_title": "Batch-Edit", "modal_edit_title": "Kanal bearbeiten"
+            },
+            "fr": {
+                "app_title": "Boîte à outils M3U/M3U8", "sidebar_title": "Menu",
+                "menu_tester": "📺 Testeur", "menu_capture": "🔗 Capture", "menu_editor": "📝 Éditeur", "menu_checker": "📡 Vérificateur", "menu_converter": "🔄 Convertisseur",
+                "title_tester": "Testeur de flux", "btn_play": "Lire", "status_ready": "Prêt", "tips_tester_content": "Teste uniquement la <b>connectivité</b>.<br>Note : Échecs souvent dus aux restrictions <b>CORS</b>.",
+                "title_capture": "Capture de flux (yt-dlp)", "btn_test_link": "Tester", "msg_analyzing": "Analyse...",
+                "tips_capture_content": "<b>Usage:</b> Extrait M3U8 via yt-dlp.<br><br><b>⚠️ Taux de réussite:</b><br>1. <b>Blocage</b>: Sites bloquent les IP cloud.<br>2. <b>Solution</b>: <b>Déploiement local</b> (Termux) recommandé.<br>3. <b>Astuce</b>: Réessayez 2-3 fois si échec.",
+                "title_editor": "Éditeur Playlist", "desc_editor": "1. <b>Vues</b>: Texte/Liste/Grille.<br>2. <b>Lot</b>: Modif. par lot en Grille.<br>3. <b>Perf</b>: Moins de <b>10Mo</b> recommandé.",
+                "upload_text": "Choisir un fichier", "btn_select_file": "Sélectionner",
+                "mode_text": "📄 Texte", "mode_list": "☰ Liste", "mode_grid": "▦ Grille",
+                "btn_batch": "✅ Lot", "btn_add": "➕ Ajout", "btn_save": "💾 Sauv.", "btn_discard": "❌ Annuler", "btn_select_all": "🔁 Tout",
+                "btn_edit_group": "Groupe", "btn_edit_logo": "Logo", "btn_delete": "Suppr.", "btn_exit": "Quitter",
+                "title_checker": "Vérificateur", "tips_checker_content": "1. <b>Smart</b>: Réessai No-CORS.<br>2. <b>⚠️ Probable</b>: Serveur OK, bloqué par nav.<br>3. <b>❌ Invalide</b>: Connexion refusée.",
+                "upload_checker_text": "Importer Playlist", "btn_start_check": "▶ Débuter", "btn_reset": "🔄 Reset",
+                "title_converter": "Convertisseur", "desc_converter": "1. <b>Auto</b>: M3U/TXT.<br>2. <b>TiviMate</b>: Ajoute <code>tvg-id</code>.<br>3. <b>TXT</b>: Format 'Nom,URL'.",
+                "upload_converter_text": "Importer fichier", "label_file_read": "📂 Chargé", "label_channel_count": "Chaînes:", "label_select_format": "Format cible:",
+                "fmt_m3u_desc": "Standard M3U", "fmt_txt": "Fichier TXT", "fmt_txt_desc": "Séparé par virgules", "fmt_json_desc": "Données JSON", "fmt_tivi_desc": "Pour TiviMate",
+                "btn_reupload": "↩️ Recharger", "batch_selected": "Sélection 0", "btn_cancel": "Annuler", "btn_confirm": "OK", "btn_add_prop": "+ Propriété",
+                "status_valid": "✅ Succès", "status_invalid": "❌ Échec", "err_network": "Erreur réseau",
+                "lbl_title": "Titre", "lbl_source": "Source", "lbl_duration": "Durée", "lbl_quality": "Qualité", "lbl_raw": "Brut",
+                "modal_file_title": "Chargé", "modal_file_desc": "Continuer ?", "modal_batch_title": "Édition par lot", "modal_edit_title": "Éditer chaîne"
+            },
+            "es": {
+                "app_title": "Herramientas M3U/M3U8", "sidebar_title": "Menú",
+                "menu_tester": "📺 Probador", "menu_capture": "🔗 Captura", "menu_editor": "📝 Editor", "menu_checker": "📡 Verificador", "menu_converter": "🔄 Convertidor",
+                "title_tester": "Probador de Stream", "btn_play": "Reprod.", "status_ready": "Listo", "tips_tester_content": "Prueba solo <b>conectividad</b>.<br>Nota: Fallos usuales por <b>CORS</b>.",
+                "title_capture": "Captura (yt-dlp)", "btn_test_link": "Probar", "msg_analyzing": "Analizando...",
+                "tips_capture_content": "<b>Uso:</b> Extrae M3U8 vía yt-dlp.<br><br><b>⚠️ Éxito:</b><br>1. <b>Bloqueo</b>: Sitios bloquean IPs nube.<br>2. <b>Solución</b>: <b>Local</b> (Termux) recomendado.<br>3. <b>Tip</b>: Reintente 2-3 veces si falla.",
+                "title_editor": "Editor Playlist", "desc_editor": "1. <b>Vistas</b>: Texto/Lista/Cuadrícula.<br>2. <b>Lote</b>: Edición lote en Cuadrícula.<br>3. <b>Rend.</b>: Menos de <b>10MB</b>.",
+                "upload_text": "Elegir archivo", "btn_select_file": "Seleccionar",
+                "mode_text": "📄 Texto", "mode_list": "☰ Lista", "mode_grid": "▦ Cuadrícula",
+                "btn_batch": "✅ Lote", "btn_add": "➕ Añadir", "btn_save": "💾 Guardar", "btn_discard": "❌ Descartar", "btn_select_all": "🔁 Todos",
+                "btn_edit_group": "Grupo", "btn_edit_logo": "Logo", "btn_delete": "Borrar", "btn_exit": "Salir",
+                "title_checker": "Verificador", "tips_checker_content": "1. <b>Smart</b>: Reintento No-CORS.<br>2. <b>⚠️ Probable</b>: Servidor OK, bloq. navegador.<br>3. <b>❌ Inválido</b>: Conexión rechazada.",
+                "upload_checker_text": "Importar Playlist", "btn_start_check": "▶ Iniciar", "btn_reset": "🔄 Reset",
+                "title_converter": "Convertidor", "desc_converter": "1. <b>Auto</b>: M3U/TXT.<br>2. <b>TiviMate</b>: Añade <code>tvg-id</code>.<br>3. <b>TXT</b>: Formato 'Nombre,URL'.",
+                "upload_converter_text": "Importar archivo", "label_file_read": "📂 Cargado", "label_channel_count": "Canales:", "label_select_format": "Formato:",
+                "fmt_m3u_desc": "Estándar M3U", "fmt_txt": "Archivo TXT", "fmt_txt_desc": "Separado por comas", "fmt_json_desc": "Datos JSON", "fmt_tivi_desc": "Para TiviMate",
+                "btn_reupload": "↩️ Resubir", "batch_selected": "Sel. 0", "btn_cancel": "Cancelar", "btn_confirm": "OK", "btn_add_prop": "+ Propiedad",
+                "status_valid": "✅ Éxito", "status_invalid": "❌ Fallo", "err_network": "Error red",
+                "lbl_title": "Título", "lbl_source": "Fuente", "lbl_duration": "Duración", "lbl_quality": "Calidad", "lbl_raw": "Crudo",
+                "modal_file_title": "Cargado", "modal_file_desc": "¿Continuar?", "modal_batch_title": "Edición lote", "modal_edit_title": "Editar canal"
+            },
+            "pt": {
+                "app_title": "Ferramentas M3U/M3U8", "sidebar_title": "Menu",
+                "menu_tester": "📺 Testador", "menu_capture": "🔗 Captura", "menu_editor": "📝 Editor", "menu_checker": "📡 Verificador", "menu_converter": "🔄 Conversor",
+                "title_tester": "Testador de Stream", "btn_play": "Tocar", "status_ready": "Pronto", "tips_tester_content": "Testa apenas <b>conectividade</b>.<br>Nota: Falhas geralmente por <b>CORS</b>.",
+                "title_capture": "Captura (yt-dlp)", "btn_test_link": "Testar", "msg_analyzing": "Analisando...",
+                "tips_capture_content": "<b>Uso:</b> Extrai M3U8 via yt-dlp.<br><br><b>⚠️ Sucesso:</b><br>1. <b>Bloqueio</b>: Sites bloqueiam IPs nuvem.<br>2. <b>Solução</b>: <b>Local</b> (Termux) recomendado.<br>3. <b>Dica</b>: Tente 2-3 vezes se falhar.",
+                "title_editor": "Editor Playlist", "desc_editor": "1. <b>Vistas</b>: Texto/Lista/Grade.<br>2. <b>Lote</b>: Edição lote em Grade.<br>3. <b>Perf.</b>: Menos de <b>10MB</b>.",
+                "upload_text": "Escolher arquivo", "btn_select_file": "Selecionar",
+                "mode_text": "📄 Texto", "mode_list": "☰ Lista", "mode_grid": "▦ Grade",
+                "btn_batch": "✅ Lote", "btn_add": "➕ Adic.", "btn_save": "💾 Salvar", "btn_discard": "❌ Descartar", "btn_select_all": "🔁 Todos",
+                "btn_edit_group": "Grupo", "btn_edit_logo": "Logo", "btn_delete": "Apagar", "btn_exit": "Sair",
+                "title_checker": "Verificador", "tips_checker_content": "1. <b>Smart</b>: Retentativa No-CORS.<br>2. <b>⚠️ Provável</b>: Servidor OK, bloq. navegador.<br>3. <b>❌ Inválido</b>: Conexão recusada.",
+                "upload_checker_text": "Importar Playlist", "btn_start_check": "▶ Iniciar", "btn_reset": "🔄 Reset",
+                "title_converter": "Conversor", "desc_converter": "1. <b>Auto</b>: M3U/TXT.<br>2. <b>TiviMate</b>: Adic. <code>tvg-id</code>.<br>3. <b>TXT</b>: Formato 'Nome,URL'.",
+                "upload_converter_text": "Importar arquivo", "label_file_read": "📂 Carregado", "label_channel_count": "Canais:", "label_select_format": "Formato:",
+                "fmt_m3u_desc": "Padrão M3U", "fmt_txt": "Arquivo TXT", "fmt_txt_desc": "Separado por vírgula", "fmt_json_desc": "Dados JSON", "fmt_tivi_desc": "Para TiviMate",
+                "btn_reupload": "↩️ Reenviar", "batch_selected": "Sel. 0", "btn_cancel": "Cancelar", "btn_confirm": "OK", "btn_add_prop": "+ Propriedade",
+                "status_valid": "✅ Sucesso", "status_invalid": "❌ Falha", "err_network": "Erro de rede",
+                "lbl_title": "Título", "lbl_source": "Fonte", "lbl_duration": "Duração", "lbl_quality": "Qualidade", "lbl_raw": "Bruto",
+                "modal_file_title": "Carregado", "modal_file_desc": "Continuar?", "modal_batch_title": "Edição lote", "modal_edit_title": "Editar canal"
             }
-        });
+        };
 
         // ==========================================
         // 3. 初始化与多语言逻辑
@@ -644,7 +771,7 @@
             btn.disabled = true;
 
             try {
-                // 发起请求 (如果失败，请检查 server.py 是否在 5000 端口运行)
+                // 发起请求
                 const response = await fetch(`${API_BASE}?url=${encodeURIComponent(url)}`);
                 const data = await response.json();
 
@@ -741,7 +868,7 @@
         function p(n) { return n < 10 ? '0'+n : n; }
 
         // ==========================================
-        // 6. 文件上传处理 (所有模块通用)
+        // 6. 文件上传处理
         // ==========================================
         function triggerUpload(target) {
             currentUploadTarget = target;
