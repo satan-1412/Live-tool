@@ -159,7 +159,7 @@
         .fmt-name { font-weight: bold; font-size: 16px; color: white; margin-bottom: 5px; }
         .fmt-desc { font-size: 13px; color: var(--text-gray); line-height: 1.4; }
 
-        /* --- 8. 捕捉测试新样式 (美化版) --- */
+        /* --- 8. 捕捉测试新样式 (美化版 + 图片支持) --- */
         .capture-result { 
             margin-top: 25px; 
             display: none; 
@@ -172,7 +172,26 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            overflow: hidden;
         }
+        /* 新增：图片容器样式 */
+        .result-thumb-box {
+            width: 100%;
+            height: 180px;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            display: none; /* JS控制是否显示 */
+            position: relative;
+        }
+        .result-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 居中裁剪 */
+            opacity: 0.9;
+        }
+        
         .result-header {
             display: flex;
             align-items: flex-start;
@@ -372,9 +391,9 @@
                 <span style="font-size:13px; line-height: 1.6;" data-i18n="tips_capture_content">
                 <b>功能用途：</b>基于 yt-dlp 核心，测试能否从视频网站（YouTube, Twitch, 虎牙等）解析出 M3U8 直播流或真实播放地址。<br><br>
                 <b>⚠️ 成功率说明：</b><br>
-                1. <b>反爬封锁</b>：YouTube 等大平台会对“云服务器 IP”（如 Vercel, AWS）进行严格的风控，导致解析失败。<br>
-                2. <b>解决方案</b>：强烈建议使用<b>“本地部署”</b>（如 Termux、NAS）或<b>“私人服务器”</b>运行后端。<br>
-                3. <b>操作建议</b>：如果遇到解析失败，请尝试<b>点击 2-3 次测试</b>，或更换节点后再试。
+                1. <b>反爬封锁</b>：YouTube 等大平台会对“云服务器 IP”进行严格风控。<br>
+                2. <b>解决方案</b>：强烈建议使用<b>“本地部署”</b>（Termux/NAS）或<b>“私人服务器”</b>。<br>
+                3. <b>操作建议</b>：如遇失败，请尝试<b>点击 2-3 次测试</b>或更换节点。
                 </span>
             </div>
             <div class="input-group">
@@ -397,7 +416,7 @@
                 <span data-i18n="desc_editor">
                 1. <b>操作模式</b>：提供“文本代码”、“可视化列表”和“网格资料”三种视图，支持拖拽排序。<br>
                 2. <b>批量处理</b>：在网格模式下，点击右上角进入批量模式，可快速修改分组名称和台标。<br>
-                3. <b>性能提示</b>：所有操作均在本地浏览器完成。为防止页面卡顿，建议处理 <b>10MB</b> 以下的文件。
+                3. <b>性能提示</b>：本地浏览器处理。建议处理 <b>10MB</b> 以下文件。
                 </span>
             </div>
             
@@ -442,7 +461,7 @@
                 <span data-i18n="tips_checker_content">
                 1. <b>智能探测</b>：如果直接连接失败，会自动切换“隐私探测”模式。<br>
                 2. <b>⚠️ 可能有效</b>：黄色状态表示服务器已连通，但内容被浏览器安全策略拦截。<br>
-                3. <b>❌ 无效</b>：连接被拒绝或超时。
+                3. <b>❌ 无效</b>：连接拒绝或超时。
                 </span>
             </div>
 
@@ -528,9 +547,7 @@
 
     </main>
     <script>
-        // --- 9.2 完整多语言词典 ---
-        const i18nData = {
-                // --- 9.2 完整多语言词典 (已修复所有语言) ---
+        // --- 9.2 完整多语言词典 (已修复所有语言) ---
         const i18nData = {
             "zh": {
                 "app_title": "M3U/M3U8在线工具箱", "sidebar_title": "工具箱菜单",
@@ -732,23 +749,6 @@
             }
         };
 
-        // --- 初始化：语言设置 (修复版) ---
-        (function initLang() {
-            const sysLang = (navigator.language || navigator.userLanguage).toLowerCase(); 
-            // 修复：添加所有支持语言的检测逻辑
-            if (sysLang.startsWith('zh')) currentLang = 'zh';
-            else if (sysLang.startsWith('ja')) currentLang = 'ja';
-            else if (sysLang.startsWith('ko')) currentLang = 'ko';
-            else if (sysLang.startsWith('ru')) currentLang = 'ru';
-            else if (sysLang.startsWith('de')) currentLang = 'de';
-            else if (sysLang.startsWith('fr')) currentLang = 'fr';
-            else if (sysLang.startsWith('es')) currentLang = 'es';
-            else if (sysLang.startsWith('pt')) currentLang = 'pt';
-            else currentLang = 'en'; // 默认回退到英语
-            updatePageLang();
-        })();
-
-
         // --- 全局变量 ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
@@ -765,12 +765,19 @@
         let currentUploadTarget = ''; 
         let currentMode = 'text';
 
-        // --- 初始化：语言设置 ---
+        // --- 初始化：语言设置 (修复版) ---
         (function initLang() {
-            const sysLang = navigator.language || navigator.userLanguage; 
+            const sysLang = (navigator.language || navigator.userLanguage).toLowerCase(); 
+            // 修复：添加所有支持语言的检测逻辑
             if (sysLang.startsWith('zh')) currentLang = 'zh';
             else if (sysLang.startsWith('ja')) currentLang = 'ja';
-            else currentLang = 'en';
+            else if (sysLang.startsWith('ko')) currentLang = 'ko';
+            else if (sysLang.startsWith('ru')) currentLang = 'ru';
+            else if (sysLang.startsWith('de')) currentLang = 'de';
+            else if (sysLang.startsWith('fr')) currentLang = 'fr';
+            else if (sysLang.startsWith('es')) currentLang = 'es';
+            else if (sysLang.startsWith('pt')) currentLang = 'pt';
+            else currentLang = 'en'; // 默认回退到英语
             updatePageLang();
         })();
 
@@ -804,7 +811,7 @@
             toggleMenu();
         }
 
-        // --- 核心：捕捉测试功能 (Test Capture) ---
+        // --- 核心：捕捉测试功能 (Test Capture - 增加图片支持) ---
         async function testCaptureUrl() {
             const input = document.getElementById('captureInput');
             const resultDiv = document.getElementById('captureResult');
@@ -845,6 +852,17 @@
                     const extractor = data.extractor || t('lbl_unknown');
                     const duration = data.duration ? formatDuration(data.duration) : t('lbl_unknown');
                     
+                    // --- 新增：图片显示逻辑 ---
+                    // 如果后端返回了 thumbnail 且不为空，则显示图片容器；否则不显示
+                    let thumbHtml = '';
+                    if (data.thumbnail) {
+                        thumbHtml = `
+                            <div class="result-thumb-box">
+                                <img src="${data.thumbnail}" class="result-thumb" onerror="this.parentElement.style.display='none'">
+                            </div>
+                        `;
+                    }
+
                     // 提取画质标签
                     let formatsHtml = `<span class="quality-badge">${t('lbl_raw')}</span>`;
                     if (data.formats && data.formats.length > 0) {
@@ -855,9 +873,10 @@
                         }
                     }
 
-                    // 渲染成功卡片
+                    // 渲染成功卡片 (含图片)
                     resultDiv.innerHTML = `
                         <div class="result-card">
+                            ${thumbHtml}
                             <div class="result-header">
                                 <div class="result-title">${title}</div>
                                 <div class="result-badge">${t('status_valid')}</div>
@@ -903,8 +922,7 @@
             const s = Math.floor(seconds % 60);
             return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
         }
-
-        // --- 文件处理逻辑 ---
+        // --- 10. 文件处理逻辑 (File Handling) ---
         function triggerUpload(target) {
             currentUploadTarget = target;
             let inputId = 'fileInputEditor';
@@ -957,7 +975,7 @@
             else if (currentUploadTarget === 'converter') initConverter(converterData.raw);
         }
 
-        // --- 数据解析 (通用) ---
+        // --- 11. 数据解析 (Parser) ---
         function extractChannels(rawText) {
             const lines = rawText.split(/\r?\n/);
             const channels = [];
@@ -985,7 +1003,7 @@
             return s.startsWith('http') || s.startsWith('rtmp') || s.startsWith('rtsp') || s.startsWith('udp') || s.startsWith('mms');
         }
 
-        // --- 转换器逻辑 ---
+        // --- 12. 转换器逻辑 (Converter) ---
         function initConverter(rawText) {
             document.getElementById('step-upload-converter').style.display = 'none';
             document.getElementById('step-convert-ui').style.display = 'block';
@@ -1025,7 +1043,7 @@
             document.getElementById('step-upload-converter').style.display = 'block';
         }
 
-        // --- 检测器逻辑 ---
+        // --- 13. 检测器逻辑 (Checker) ---
         function initChecker(rawText) {
             document.getElementById('step-upload-checker').style.display = 'none';
             document.getElementById('step-check-ui').style.display = 'block';
@@ -1050,6 +1068,7 @@
             statusEl.className = 'check-status testing'; statusEl.textContent = '...'; btn.disabled = true;
             const startTime = Date.now();
             try {
+                // 标准 HEAD 请求探测
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 6000); 
                 const res = await fetch(ch.url, { method: 'HEAD', signal: controller.signal });
@@ -1059,7 +1078,7 @@
                     statusEl.className = 'check-status success'; statusEl.textContent = `${t('status_valid')} (${ping}ms)`;
                 } else { throw new Error("HTTP " + res.status); }
             } catch (e) {
-                // 隐私模式探测 (No-CORS)
+                // 失败后尝试 No-CORS 模式（隐私探测）
                 try {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -1079,7 +1098,7 @@
             btn.disabled = true;
             const total = checkerData.channels.length;
             let completed = 0;
-            const concurrency = 5;
+            const concurrency = 5; // 并发数
             const queue = [...checkerData.channels.map((_, i) => i)];
             const worker = async () => {
                 while (queue.length > 0) {
@@ -1105,7 +1124,7 @@
             }
         }
 
-        // --- 简单播放器逻辑 ---
+        // --- 14. 简易播放器 (Player) ---
         document.getElementById('playBtn').addEventListener('click', () => {
             const url = document.getElementById('urlInput').value.trim();
             const v = document.getElementById('video');
@@ -1118,7 +1137,7 @@
             } else if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src=url; v.play(); }
         });
 
-        // --- 编辑器逻辑 ---
+        // --- 15. 编辑器核心逻辑 (Editor) ---
         function parseTextToData() {
             const rawText = document.getElementById('codeEditor').value;
             const lines = rawText.split(/\r?\n/);
@@ -1301,7 +1320,6 @@
             toggleBatchMode(false);
         }
 
-        // --- 编辑模态框 ---
         const editModal = document.getElementById('editModal');
         const dynamicForm = document.getElementById('dynamicForm');
         let currentEditIndex = -1;
